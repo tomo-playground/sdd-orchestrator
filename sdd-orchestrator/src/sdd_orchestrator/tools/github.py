@@ -23,12 +23,27 @@ logger = logging.getLogger(__name__)
 SP_RE = re.compile(r"SP-\d+")
 
 
+def _repo_args() -> tuple[str, ...]:
+    """Return ``('--repo', 'owner/name')`` for the managed project repo."""
+    from sdd_orchestrator.project_config import get_project_config
+
+    name = get_project_config().repo_full_name
+    return ("--repo", name) if name else ()
+
+
 async def _run_gh_command(*args: str) -> dict:
-    """Run a gh CLI command and return parsed JSON or error dict."""
+    """Run a gh CLI command and return parsed JSON or error dict.
+
+    Automatically injects ``--repo owner/name`` so the command targets
+    the managed project repo regardless of the process cwd.
+    """
+    repo_flag = _repo_args() if "--repo" not in args and "-R" not in args else ()
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "gh",
             *args,
+            *repo_flag,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -169,6 +184,7 @@ async def do_merge_pr(pr_number: int) -> dict:
             str(pr_number),
             "--squash",
             "--delete-branch",
+            *_repo_args(),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -273,6 +289,7 @@ async def do_trigger_sdd_review(pr_number: int) -> dict:
             "sdd-fix.yml",
             "-f",
             f"pr_number={pr_number}",
+            *_repo_args(),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -338,7 +355,7 @@ async def do_trigger_workflow(workflow: str, *, inputs: dict[str, str] | None = 
             ]
         }
 
-    cmd: list[str] = ["gh", "workflow", "run", workflow]
+    cmd: list[str] = ["gh", "workflow", "run", workflow, *_repo_args()]
     if inputs:
         for key, value in inputs.items():
             cmd.extend(["-f", f"{key}={value}"])
@@ -421,6 +438,7 @@ async def do_cancel_workflow(run_id: int) -> dict:
             "run",
             "cancel",
             str(run_id),
+            *_repo_args(),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

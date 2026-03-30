@@ -170,6 +170,8 @@ async def _fetch_latest_stacktrace(client: httpx.AsyncClient, issue_id: str) -> 
 
 async def _get_existing_sentry_ids() -> set[str]:
     """Get set of sentry issue IDs already tracked in GitHub Issues."""
+    from sdd_orchestrator.tools.github import _repo_args
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "gh",
@@ -183,6 +185,7 @@ async def _get_existing_sentry_ids() -> set[str]:
             "500",
             "--json",
             "title,body",
+            *_repo_args(),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -216,6 +219,8 @@ async def _create_github_issue(project: str, issue_data: dict, stacktrace: str) 
         f"## Stacktrace\n```\n{stacktrace or 'No stacktrace available'}\n```"
     )
 
+    from sdd_orchestrator.tools.github import _repo_args
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "gh",
@@ -231,6 +236,7 @@ async def _create_github_issue(project: str, issue_data: dict, stacktrace: str) 
             "bug",
             "--assignee",
             GH_ISSUE_ASSIGNEE,
+            *_repo_args(),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -250,6 +256,8 @@ async def _create_github_issue(project: str, issue_data: dict, stacktrace: str) 
 
 async def _trigger_autofix(issue_number: int) -> bool:
     """Trigger sentry-autofix workflow for a GitHub Issue."""
+    from sdd_orchestrator.tools.github import _repo_args
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "gh",
@@ -258,6 +266,7 @@ async def _trigger_autofix(issue_number: int) -> bool:
             "sentry-autofix.yml",
             "-f",
             f"issue_number={issue_number}",
+            *_repo_args(),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

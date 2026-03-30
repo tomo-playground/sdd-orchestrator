@@ -136,7 +136,7 @@ def _has_open_pr(task_id: str) -> str | None:
     import re
     import subprocess
 
-    from sdd_orchestrator.config import PROJECT_ROOT
+    from sdd_orchestrator.tools.github import _repo_args
 
     try:
         r = subprocess.run(
@@ -150,11 +150,11 @@ def _has_open_pr(task_id: str) -> str | None:
                 "100",
                 "--json",
                 "number,headRefName",
+                *_repo_args(),
             ],
             capture_output=True,
             text=True,
             timeout=10,
-            cwd=str(PROJECT_ROOT),
         )
         if r.returncode != 0 or not r.stdout.strip():
             return None
