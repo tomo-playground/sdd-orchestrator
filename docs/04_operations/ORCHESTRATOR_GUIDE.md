@@ -160,13 +160,31 @@ Sentry 에러 감지 → GitHub Issue 생성 → autofix PR → 리뷰 → Slack
 
 ---
 
+## Worktree 관리
+
+### 네이밍 규칙
+모든 `--worktree` 호출은 **`SP-NNN`** 형식으로 통일.
+브랜치 전체명(`feat/SP-NNN_*`)을 넘기지 않는다.
+
+### 생성 전 방어 로직
+worktree 생성 4곳(orchestrator, sdd-fix conflict/피드백, sdd-sync rebase) 모두:
+1. 기존 디렉토리 존재 확인
+2. `pgrep`으로 프로세스 생존 체크
+3. 프로세스 없으면 `git worktree remove --force` → 재생성
+4. 프로세스 있으면 스킵 (실행 중인 작업 보호)
+
+### PR 브랜치 작업
+`claude --worktree SP-NNN`은 새 브랜치(`worktree-SP-NNN`)를 생성.
+PR 브랜치에서 작업하려면 프롬프트에 `git checkout ${BRANCH}` 지시 필요.
+
 ## 모니터링
 
 ```bash
 .claude/scripts/sdd-orch.sh status   # 프로세스 상태
-tail -f /tmp/orchestrator.log        # 실시간 로그
+tail -f sdd-orchestrator/logs/orchestrator.log  # 실시간 로그
 gh pr list --state open              # 열린 PR
 git worktree list                    # 워크트리
+sqlite3 .sdd/state.db "SELECT task_id, status FROM task_status WHERE status != 'done';"  # 활성 태스크
 ```
 
 ---

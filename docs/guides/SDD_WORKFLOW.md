@@ -294,6 +294,18 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 - **main 직접 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`
 - **feat/fix 브랜치 + PR 필수**: `backend/`, `frontend/`, `audio/`, 그 외 코드
 
+### 태스크 상태 관리
+
+- **SSOT**: `.sdd/state.db` (SQLite) — 오케스트레이터 + 모든 SDD 명령이 참조
+- **spec.md**: 스펙/설계 문서 전용. status 필드는 사람용 표시 (SP-123 완료 후 제거 예정)
+- 상태 확인: `sqlite3 .sdd/state.db "SELECT task_id, status FROM task_status WHERE task_id='SP-NNN';"`
+
+### Worktree 네이밍 규칙
+
+- 모든 `--worktree` 호출은 **`SP-NNN`** 형식 사용
+- 브랜치 전체명(`feat/SP-NNN_*`)은 프롬프트 내에서 `git checkout` 지시로 전달
+- 생성 전 기존 디렉토리 잔류 확인 + 프로세스 생존 체크 필수
+
 ---
 
 ## 용어 사전 (혼용 금지)
