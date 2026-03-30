@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -21,6 +22,8 @@ if SENTRY_DSN_BACKEND:
         environment=SENTRY_ENVIRONMENT,
         traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
         send_default_pii=False,
+        # 서버 정상 종료(SIGINT) 시 발생하는 예외는 Sentry에 보고하지 않음
+        ignore_errors=[KeyboardInterrupt, asyncio.CancelledError],
     )
 
 

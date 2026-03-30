@@ -4,12 +4,14 @@ sentry-autofix.yml 워크플로우의 구조와 설정을 검증한다.
 실제 GitHub API 호출은 E2E 수동 테스트로 검증.
 """
 
+import ast
 from pathlib import Path
 
 import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = REPO_ROOT / ".github/workflows/sentry-autofix.yml"
 PATROL_PATH = REPO_ROOT / "scripts/sentry-patrol.sh"
 
@@ -120,3 +122,59 @@ class TestSentryPatrolIntegration:
         """GITHUB_LABEL 변수가 'sentry'인지."""
         content = PATROL_PATH.read_text()
         assert 'GITHUB_LABEL="sentry"' in content
+
+
+class TestSentryIgnoreErrors:
+    """Sentry init이 서버 종료 예외를 무시하도록 설정되어 있는지 검증.
+
+    Sentry Issue #7372333496: 서버 종료(SIGINT) 시 uvicorn이 KeyboardInterrupt를 발생시키고
+    lifespan teardown에서 asyncio.CancelledError가 발생하는데, 이는 정상 종료 과정이므로
+    Sentry에 에러로 보고되어서는 안 된다.
+    """
+
+    @staticmethod
+    def _get_ignore_errors_symbols() -> set[str]:
+        """main.py의 sentry_sdk.init() 호출에서 ignore_errors 값을 AST로 파싱해 반환."""
+        main_src = (BACKEND_ROOT / "main.py").read_text()
+        tree = ast.parse(main_src)
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "sentry_sdk"
+                and node.func.attr == "init"
+            ):
+                for kw in node.keywords:
+                    if kw.arg == "ignore_errors" and isinstance(kw.value, ast.List):
+                        names: set[str] = set()
+                        for elt in kw.value.elts:
+                            if isinstance(elt, ast.Name):
+                                names.add(elt.id)
+                            elif isinstance(elt, ast.Attribute):
+                                names.add(elt.attr)
+                        return names
+        raise AssertionError("sentry_sdk.init(..., ignore_errors=[...]) 구성을 찾지 못함")
+
+    def test_main_has_ignore_errors(self):
+        """main.py sentry_sdk.init에 ignore_errors 파라미터가 있어야 한다."""
+        ignore_errors = self._get_ignore_errors_symbols()
+        assert ignore_errors, (
+            "sentry_sdk.init()에 ignore_errors가 없음. "
+            "서버 종료 예외(KeyboardInterrupt, CancelledError)를 무시해야 한다."
+        )
+
+    def test_ignores_keyboard_interrupt(self):
+        """KeyboardInterrupt가 ignore_errors에 포함되어야 한다 (SIGINT 서버 종료)."""
+        ignore_errors = self._get_ignore_errors_symbols()
+        assert "KeyboardInterrupt" in ignore_errors, (
+            "KeyboardInterrupt가 ignore_errors에 없음. uvicorn SIGINT 수신 시 발생하는 정상 종료를 Sentry에서 무시해야 한다."
+        )
+
+    def test_ignores_cancelled_error(self):
+        """asyncio.CancelledError가 ignore_errors에 포함되어야 한다 (lifespan teardown)."""
+        ignore_errors = self._get_ignore_errors_symbols()
+        assert "CancelledError" in ignore_errors, (
+            "CancelledError가 ignore_errors에 없음. "
+            "lifespan teardown 중 발생하는 정상 cancellation을 Sentry에서 무시해야 한다."
+        )
