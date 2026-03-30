@@ -13,6 +13,31 @@ def _coerce_str(val: object) -> str:
     return str(val) if val is not None else ""
 
 
+def _coerce_list(val: object) -> list[str]:
+    """Gemini가 문자열로 반환한 context_tags 배열 필드를 리스트로 정규화한다."""
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return [str(v) for v in val]
+    return [str(val)]
+
+
+# 항상 list[str]이어야 하는 context_tags 필드
+_LIST_FIELDS = frozenset(
+    [
+        "environment",
+        "time_of_day",
+        "weather",
+        "particle",
+        "props",
+        "cinematic",
+        "action_body",
+        "action_hand",
+        "action_daily",
+    ]
+)
+
+
 # ── Phase A: Emotion Vocabulary (SSOT) ────────────────────────────────
 # 유효한 emotion → (expression, mood) 매핑. Gemini 템플릿에서 이 목록만 허용.
 # 새 emotion 추가 시 이 테이블 하나만 수정하면 expression/mood 모두 자동 파생.
@@ -251,6 +276,11 @@ def validate_context_tag_categories(scenes: list[dict]) -> None:
         ctx = scene.get("context_tags")
         if not ctx:
             continue
+
+        # 배열 필드 정규화: str → list[str]
+        for lf in _LIST_FIELDS:
+            if lf in ctx:
+                ctx[lf] = _coerce_list(ctx[lf])
 
         # expression/gaze/pose 재분류
         misplaced: list[tuple[str, str]] = []  # (source_field, value)
