@@ -70,8 +70,7 @@ echo "$CONFLICT_PRS" | while read -r PR_NUM BRANCH; do
     git rebase --abort 2>/dev/null
     # 2차: Claude가 conflict 해결
     echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} conflict → Claude 해결 시도" >> "$LOG"
-    SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "$BRANCH")
-    claude --worktree "${SP_ID}" --dangerously-skip-permissions -p \
+    claude --worktree "${BRANCH}" --dangerously-skip-permissions -p \
       "PR #${PR_NUM} (${BRANCH})에 merge conflict가 있습니다.
 1. git fetch origin main && git rebase origin/main
 2. conflict 파일을 읽고 양쪽 의도를 파악하여 해결
@@ -144,8 +143,7 @@ for PR_NUM in $REVIEWED_PRS; do
   echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} (${BRANCH}) 리뷰 이슈 수정 시작" >> "$LOG"
 
   # 워크트리에서 Claude로 판단 기반 대응 (main 브랜치 오염 방지)
-  SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "$BRANCH")
-  claude --worktree "${SP_ID}" --dangerously-skip-permissions -p "PR #${PR_NUM} 피드백을 대응하세요.
+  claude --worktree "${BRANCH}" --dangerously-skip-permissions -p "PR #${PR_NUM} 피드백을 대응하세요.
 
 1. gh api repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments 와 gh api repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments 로 모든 코멘트를 읽으세요.
 
