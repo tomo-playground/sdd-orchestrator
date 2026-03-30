@@ -23,7 +23,7 @@ x-langfuse-common-env: &langfuse-common-env
 services:
   langfuse-db:
     image: postgres:16-alpine
-    restart: unless-stopped
+    restart: always
     ports:
       - "5433:5432"
     environment:
@@ -35,7 +35,7 @@ services:
 
   langfuse-clickhouse:
     image: clickhouse/clickhouse-server:24.3
-    restart: unless-stopped
+    restart: always
     environment:
       CLICKHOUSE_DB: langfuse
       CLICKHOUSE_USER: langfuse
@@ -45,13 +45,13 @@ services:
 
   langfuse-redis:
     image: redis:7-alpine
-    restart: unless-stopped
+    restart: always
     ports:
       - "6380:6379"
 
   langfuse-minio:
     image: minio/minio:latest
-    restart: unless-stopped
+    restart: always
     command: server /data --console-address ":9091"
     ports:
       - "9002:9000"
@@ -64,7 +64,7 @@ services:
 
   langfuse-web:
     image: langfuse/langfuse:3
-    restart: unless-stopped
+    restart: always
     depends_on:
       - langfuse-db
       - langfuse-clickhouse
@@ -87,7 +87,7 @@ services:
 
   langfuse-worker:
     image: langfuse/langfuse-worker:3
-    restart: unless-stopped
+    restart: always
     depends_on:
       - langfuse-db
       - langfuse-clickhouse

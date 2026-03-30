@@ -4,7 +4,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    restart: unless-stopped
+    restart: always
     ports:
       - "5432:5432"
     environment:
@@ -21,7 +21,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    restart: unless-stopped
+    restart: always
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -39,7 +39,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    restart: unless-stopped
+    restart: always
     ports:
       - "5050:80"
     environment:
