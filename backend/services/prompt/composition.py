@@ -26,6 +26,7 @@ from config import (
     CAMERA_FRAMING_WIDE,
     CHARACTER_CAMERA_TAGS,
     DEFAULT_LORA_WEIGHT,
+    DEFAULT_TIME_OF_DAY_TAG,
     ENVIRONMENT_WEIGHT_BOOST,
     EXCLUSIVE_TAG_GROUPS,
     EXPRESSION_ACTION_WEIGHT_BOOST,
@@ -401,12 +402,9 @@ class PromptBuilder:
 
         # L10 Environment — location tags
         tag_info = self.get_tag_info(location_tags)
-        has_time_tag = False
         for tag in location_tags:
             norm = tag.lower().replace(" ", "_").strip()
             info = tag_info.get(norm, {"layer": LAYER_ENVIRONMENT})
-            if info.get("group_name") == "time_of_day" or norm in _TIME_OF_DAY_TAGS:
-                has_time_tag = True
             target = info["layer"]
             if target in CHARACTER_ONLY_LAYERS:
                 continue
@@ -414,9 +412,7 @@ class PromptBuilder:
                 continue
             layers[target].append(tag)
 
-        # Default time-of-day: NoobAI-XL v-pred defaults to dark/night without explicit time tag
-        if not has_time_tag:
-            layers[LAYER_ENVIRONMENT].append("day")
+        self._inject_default_time_if_needed(layers)
 
         # L11 Atmosphere — Style LoRA (trigger words omitted)
         if style_loras:
@@ -1197,7 +1193,7 @@ class PromptBuilder:
         env_norms = {PromptBuilder._dedup_key(t) for t in layers[LAYER_ENVIRONMENT]}
         if env_norms & _TIME_OF_DAY_TAGS:
             return
-        layers[LAYER_ENVIRONMENT].append("day")
+        layers[LAYER_ENVIRONMENT].append(DEFAULT_TIME_OF_DAY_TAG)
 
     def _resolve_location_conflicts(self, env_tokens: list[str]) -> list[str]:
         """Remove conflicting location tags (indoor vs outdoor) from the environment layer.

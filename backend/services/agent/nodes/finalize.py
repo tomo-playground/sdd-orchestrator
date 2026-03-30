@@ -1165,7 +1165,7 @@ def _validate_context_tag_values(scenes: list[dict]) -> None:
                         i,
                         time_str,
                     )
-                    ctx["time_of_day"] = "day"
+                    ctx["time_of_day"] = DEFAULT_TIME_OF_DAY_TAG
 
 
 # ── DoD 4: 재조립 후 sanity check ─────────────────────────────────────

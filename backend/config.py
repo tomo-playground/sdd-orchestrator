@@ -749,6 +749,7 @@ DEFAULT_EXPRESSION_TAG = "smile"
 DEFAULT_MOOD_TAG = "neutral"
 DEFAULT_CAMERA_TAG = "cowboy_shot"
 DEFAULT_EMOTION_TAG = "calm"
+DEFAULT_TIME_OF_DAY_TAG = "day"
 NARRATOR_FALLBACK_PROMPT = "no_humans, scenery"
 
 # Finalize L2 검증: Cinematographer FORBIDDEN 목록 기반 금지 태그
