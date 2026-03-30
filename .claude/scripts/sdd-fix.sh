@@ -70,13 +70,15 @@ echo "$CONFLICT_PRS" | while read -r PR_NUM BRANCH; do
     git rebase --abort 2>/dev/null
     # 2차: Claude가 conflict 해결
     echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} conflict → Claude 해결 시도" >> "$LOG"
-    claude --worktree "${BRANCH}" --dangerously-skip-permissions -p \
+    SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "conflict-${PR_NUM}")
+    claude --worktree "${SP_ID}" --dangerously-skip-permissions -p \
       "PR #${PR_NUM} (${BRANCH})에 merge conflict가 있습니다.
-1. git fetch origin main && git rebase origin/main
-2. conflict 파일을 읽고 양쪽 의도를 파악하여 해결
-3. git rebase --continue
-4. git push --force-with-lease
-5. 해결 불가하면 PR에 코멘트: 'conflict 자동 해결 실패 — 수동 확인 필요'" \
+1. git fetch origin ${BRANCH} && git checkout ${BRANCH}
+2. git rebase origin/main
+3. conflict 파일을 읽고 양쪽 의도를 파악하여 해결
+4. git rebase --continue
+5. git push --force-with-lease
+6. 해결 불가하면 PR에 코멘트: 'conflict 자동 해결 실패 — 수동 확인 필요'" \
       2>>"$LOG" || {
         gh pr comment "$PR_NUM" --body "conflict 자동 해결 실패 — [사람] 수동 rebase 필요" 2>/dev/null || true
         echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} conflict 자동 해결 실패" >> "$LOG"
@@ -143,7 +145,10 @@ for PR_NUM in $REVIEWED_PRS; do
   echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} (${BRANCH}) 리뷰 이슈 수정 시작" >> "$LOG"
 
   # 워크트리에서 Claude로 판단 기반 대응 (main 브랜치 오염 방지)
-  claude --worktree "${BRANCH}" --dangerously-skip-permissions -p "PR #${PR_NUM} 피드백을 대응하세요.
+  SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "fix-${PR_NUM}")
+  claude --worktree "${SP_ID}" --dangerously-skip-permissions -p "PR #${PR_NUM} (브랜치: ${BRANCH}) 피드백을 대응하세요.
+
+0. 먼저 git fetch origin ${BRANCH} && git checkout ${BRANCH} 실행.
 
 1. gh api repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments 와 gh api repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments 로 모든 코멘트를 읽으세요.
 
