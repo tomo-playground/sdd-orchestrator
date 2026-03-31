@@ -99,6 +99,7 @@
 - on-stop.sh에 `passes` 전체 true 검증 추가
 - Sprint Contract: 하나라도 false → 전체 실패
 - Initializer가 `"complexity": "high" | "low"` 판별하여 주입 → Phase 2 Evaluator 적용 분기 기준
+- **하위 호환**: features.json이 없는 태스크(기존 running, Hotfix/Sentry)는 검증 스킵. 기존 흐름 유지
 
 **1b. Initializer → sdd-run 프롬프트 내 Step 1:**
 
@@ -204,8 +205,9 @@ pending → design → approved → running → done/failed
 
 ### Negative
 - Phase 2(Evaluator)은 Playwright MCP 설정 + few-shot 튜닝 필요
+- Phase 2 Evaluator 추가로 on-stop.sh 실행 시간 수십 분 증가 가능 (complexity: high만)
 - Phase 3(병렬)은 충돌 해결 전략 복잡
-- 에이전트 삭제 시 CLAUDE.md 워크플로우 룰 동기화 필요
+- 에이전트 삭제 시 CLAUDE.md 워크플로우 룰(Sub Agents, Workflow Rules, 설계 리뷰 참여 등 15건) 동기화 필요
 
 ### Cost
 - Evaluator 분리 = 태스크당 Claude 프로세스 추가 호출 → 비용 증가
