@@ -16,10 +16,15 @@ from sdd_orchestrator.config import (
     BACKLOG_PATH,
     CYCLE_INTERVAL,
     DEFAULT_DB_PATH,
+    ENABLE_AUTO_DESIGN,
     MAX_PARALLEL_RUNS,
+    TASKS_CURRENT_DIR,
 )
+from sdd_orchestrator.rules import can_auto_approve
 from sdd_orchestrator.state import StateStore
 from sdd_orchestrator.tools import create_orchestrator_mcp_server
+from sdd_orchestrator.tools.notify import do_notify_human
+from sdd_orchestrator.tools.task_utils import git_commit_files
 from sdd_orchestrator.utils import query_agent
 
 logger = logging.getLogger(__name__)
@@ -182,6 +187,9 @@ class OrchestratorDaemon:
             logger.info("Paused, skipping cycle")
             return
 
+        # Re-evaluate design tasks before launching (SP-130)
+        await self._retry_design_approval()
+
         # Deterministic: auto-launch approved tasks before LLM cycle
         await self._auto_launch_approved()
 
@@ -209,6 +217,62 @@ class OrchestratorDaemon:
         except Exception as e:
             logger.exception("Cycle #%d failed", self.cycle)
             self.state.finish_cycle(cycle_id, "error", str(e))
+
+    async def _retry_design_approval(self) -> None:
+        """Re-evaluate 'design' tasks for auto-approval (SP-130).
+
+        Runs each cycle before _auto_launch_approved() so that
+        newly approved tasks can be launched in the same cycle.
+        Max 3 attempts per task; sends notification on 3rd failure.
+        """
+        if not ENABLE_AUTO_DESIGN:
+            return
+
+        statuses = self.state.get_all_task_statuses()
+        design_tasks = [tid for tid, st in statuses.items() if st == "design"]
+        if not design_tasks:
+            return
+
+        for task_id in design_tasks:
+            matches = list(TASKS_CURRENT_DIR.glob(f"{task_id}_*/design.md"))
+            if not matches:
+                logger.warning("Task %s status='design' but no design.md", task_id)
+                continue
+
+            design_path = matches[0]
+            attempts = self.state.get_approval_attempts(task_id)
+            if attempts >= 3:
+                continue
+
+            design_content = design_path.read_text(encoding="utf-8")
+            approved, reason = can_auto_approve(design_content)
+            self.state.increment_approval_attempts(task_id)
+            new_attempts = attempts + 1
+
+            if approved:
+                self.state.set_task_status(task_id, "approved")
+                await git_commit_files(
+                    [str(design_path.parent)],
+                    f"chore(auto): {task_id} 재평가 자동 승인 — {reason}",
+                )
+                logger.info("Re-approval succeeded for %s: %s", task_id, reason)
+            elif new_attempts >= 3:
+                await do_notify_human(
+                    {
+                        "message": (
+                            f"⚠️ {task_id} 자동 승인 3회 실패 — 수동 승인 필요\n사유: {reason}"
+                        ),
+                        "level": "warning",
+                    }
+                )
+                logger.warning("Task %s: 3 approval attempts exhausted — %s", task_id, reason)
+            else:
+                logger.info(
+                    "Re-approval attempt %d/3 failed for %s: %s",
+                    new_attempts,
+                    task_id,
+                    reason,
+                )
 
     async def _auto_launch_approved(self) -> None:
         """Deterministic auto-launch: approved tasks with available slots.
@@ -273,7 +337,7 @@ class OrchestratorDaemon:
         """매 사이클 상태 정합성 자동 보정. 수동 개입 불필요."""
         import subprocess
 
-        from sdd_orchestrator.config import PROJECT_ROOT, TASKS_CURRENT_DIR
+        from sdd_orchestrator.config import PROJECT_ROOT
         from sdd_orchestrator.tools.worktree import _has_open_pr
 
         if not TASKS_CURRENT_DIR.exists():
@@ -339,8 +403,6 @@ class OrchestratorDaemon:
         """Send post-merge DoD notifications from sdd-sync to Slack."""
         import glob
 
-        from sdd_orchestrator.tools.notify import do_notify_human
-
         for path in glob.glob("/tmp/sdd-postmerge-SP-*.notify"):
             try:
                 msg = open(path).read().strip()  # noqa: SIM115
@@ -356,7 +418,6 @@ class OrchestratorDaemon:
         import subprocess
 
         from sdd_orchestrator.config import MAX_PARALLEL_RUNS, PROJECT_ROOT
-        from sdd_orchestrator.tools.notify import do_notify_human
 
         try:
             # Running tasks
@@ -440,7 +501,7 @@ class OrchestratorDaemon:
         """실제 데이터를 수집하여 데일리 리포트 요약을 구성한다."""
         import subprocess
 
-        from sdd_orchestrator.config import MAX_PARALLEL_RUNS, TASKS_CURRENT_DIR
+        from sdd_orchestrator.config import MAX_PARALLEL_RUNS
 
         project_dir = str(self.state.db_path.parent.parent)
         summary: dict = {
