@@ -151,7 +151,20 @@ Generator → on-stop.sh(기계적 게이트) → Evaluator → eval-report.json
 - `--fast` 테스트 샘플링 (시간 인지 불능 대응)
 - 네트워크 격리/컨테이너화는 필요 시 도입
 
-### 3. 하네스 진화 원칙
+### 3. 구현 수단
+
+sdd-orchestrator에 이미 Agent SDK(`ClaudeAgentOptions`)가 결합되어 있으며, `create_designer_options()` 패턴이 존재. Phase 1~2는 동일 패턴으로 확장.
+
+| Phase | 구현체 | 위치 |
+|-------|--------|------|
+| Phase 0 | 파일 삭제 + CLAUDE.md 수정 | `.claude/agents/`, `CLAUDE.md` |
+| Phase 1 Initializer | `create_initializer_options()` | `sdd-orchestrator/agents.py` |
+| Phase 1 세션 Init | `SessionStart` hook (bash) | `.claude/hooks/on-session-start.sh` |
+| Phase 1 품질 게이트 | `Stop` hook 확장 (features.json 해시 + passes 검증) | `.claude/hooks/on-stop.sh` |
+| Phase 2 Evaluator | `create_evaluator_options()` (Playwright MCP 허용) | `sdd-orchestrator/agents.py` |
+| Phase 2 피드백 루프 | `launch_sdd_run` 내 Evaluator 호출 + 재시도 | `sdd-orchestrator/tools/worktree.py` |
+
+### 4. 하네스 진화 원칙
 
 - 모델 메이저 릴리스마다 컴포넌트 1개씩 제거 실험
 - "이 컴포넌트 없이도 품질 유지?" → Yes → 제거
