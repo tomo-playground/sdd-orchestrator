@@ -229,3 +229,11 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
     echo "📦 backlog 업데이트 커밋 완료"
   fi
 fi
+
+# ── sdd-orchestrator 별도 레포 자동 커밋+push ──
+ORCH_DIR="$PROJECT_DIR/sdd-orchestrator"
+if [ -d "$ORCH_DIR/.git" ] && [ -n "$(git -C "$ORCH_DIR" status --porcelain 2>/dev/null)" ]; then
+  git -C "$ORCH_DIR" add -A 2>/dev/null
+  git -C "$ORCH_DIR" commit -m "chore: auto-commit from sdd-sync ($(date '+%Y-%m-%d %H:%M'))" 2>/dev/null
+  git -C "$ORCH_DIR" push origin main 2>/dev/null && echo "📦 sdd-orchestrator 자동 push 완료" || true
+fi

@@ -190,3 +190,12 @@ for PR_NUM in $REVIEWED_PRS; do
   rm -f "$LOCK"
   echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} 수정 완료" >> "$LOG"
 done
+
+# ─── Phase 3: sdd-orchestrator 별도 레포 자동 커밋+push ───
+ORCH_DIR="$PROJECT_DIR/sdd-orchestrator"
+if [ -d "$ORCH_DIR/.git" ] && [ -n "$(git -C "$ORCH_DIR" status --porcelain 2>/dev/null)" ]; then
+  git -C "$ORCH_DIR" add -A 2>/dev/null
+  git -C "$ORCH_DIR" commit -m "chore: auto-commit from sdd-fix ($(date '+%Y-%m-%d %H:%M'))" 2>/dev/null
+  git -C "$ORCH_DIR" push origin main 2>/dev/null && \
+    echo "$(date '+%Y-%m-%d %H:%M') sdd-orchestrator 자동 push 완료" >> "$LOG" || true
+fi
