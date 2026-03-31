@@ -9,7 +9,10 @@ import pytest
 
 from sdd_orchestrator.state import StateStore
 from sdd_orchestrator.tools import worktree as worktree_mod
-from sdd_orchestrator.tools.worktree import do_check_running_worktrees, do_launch_sdd_run
+from sdd_orchestrator.tools.worktree import (
+    do_check_running_worktrees,
+    do_launch_sdd_run,
+)
 
 
 @pytest.fixture()
@@ -218,3 +221,175 @@ class TestHasOpenPr:
             mock_run.return_value.stdout = ""
             result = worktree_mod._has_open_pr("SP-117")
         assert result is None
+
+
+class TestHasUncommittedChanges:
+    def test_returns_false_when_clean(self):
+        with patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = ""
+            assert worktree_mod._has_uncommitted_changes("/fake/dir") is False
+
+    def test_returns_true_when_modified(self):
+        with patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = " M file.py\n"
+            assert worktree_mod._has_uncommitted_changes("/fake/dir") is True
+
+    def test_returns_true_when_git_returns_nonzero(self):
+        with patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 128
+            mock_run.return_value.stdout = ""
+            assert worktree_mod._has_uncommitted_changes("/fake/dir") is True
+
+    def test_returns_true_on_git_failure(self):
+        with patch(
+            "sdd_orchestrator.tools.worktree.subprocess.run",
+            side_effect=OSError("git not found"),
+        ):
+            assert worktree_mod._has_uncommitted_changes("/fake/dir") is True
+
+
+class TestSafeWorktreePath:
+    def test_rejects_traversal(self, tmp_path: Path):
+        result = worktree_mod._safe_worktree_path("../../etc/passwd", tmp_path)
+        assert result is None
+
+    def test_rejects_absolute_path(self, tmp_path: Path):
+        result = worktree_mod._safe_worktree_path("/etc/passwd", tmp_path)
+        assert result is None
+
+    def test_accepts_valid_task_id(self, tmp_path: Path):
+        result = worktree_mod._safe_worktree_path("SP-099", tmp_path)
+        assert result == (tmp_path / ".claude/worktrees/SP-099").resolve()
+
+
+class TestCleanupWorktree:
+    def test_cleanup_removes_worktree(self, tmp_path: Path):
+        wt_dir = tmp_path / ".claude/worktrees/SP-099"
+        wt_dir.mkdir(parents=True)
+        with (
+            patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path),
+            patch.object(worktree_mod, "_has_uncommitted_changes", return_value=False),
+            patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run,
+        ):
+            mock_run.return_value.returncode = 0
+            worktree_mod._cleanup_worktree("SP-099")
+            mock_run.assert_called_once()
+            assert "--force" in mock_run.call_args[0][0]
+
+    def test_cleanup_skips_when_uncommitted(self, tmp_path: Path):
+        wt_dir = tmp_path / ".claude/worktrees/SP-099"
+        wt_dir.mkdir(parents=True)
+        with (
+            patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path),
+            patch.object(worktree_mod, "_has_uncommitted_changes", return_value=True),
+            patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run,
+        ):
+            worktree_mod._cleanup_worktree("SP-099")
+            mock_run.assert_not_called()
+
+    def test_cleanup_skips_when_dir_not_exists(self, tmp_path: Path):
+        with (
+            patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path),
+            patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run,
+        ):
+            worktree_mod._cleanup_worktree("SP-099")
+            mock_run.assert_not_called()
+
+    def test_cleanup_logs_warning_on_failure(self, tmp_path: Path):
+        wt_dir = tmp_path / ".claude/worktrees/SP-099"
+        wt_dir.mkdir(parents=True)
+        with (
+            patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path),
+            patch.object(worktree_mod, "_has_uncommitted_changes", return_value=False),
+            patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run,
+        ):
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stderr = "lock error"
+            # Should not raise
+            worktree_mod._cleanup_worktree("SP-099")
+
+
+class TestRemoveStaleWorktree:
+    def test_removes_existing_stale_worktree(self, tmp_path: Path):
+        wt_dir = tmp_path / ".claude/worktrees/SP-099"
+        wt_dir.mkdir(parents=True)
+        with (
+            patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path),
+            patch.object(worktree_mod, "_has_uncommitted_changes", return_value=False),
+            patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run,
+        ):
+            mock_run.return_value.returncode = 0
+            worktree_mod._remove_stale_worktree("SP-099")
+            # prune + remove = 2 calls
+            assert mock_run.call_count == 2
+
+    def test_skips_when_no_worktree(self, tmp_path: Path):
+        with (
+            patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path),
+            patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run,
+        ):
+            worktree_mod._remove_stale_worktree("SP-099")
+            mock_run.assert_not_called()
+
+    def test_skips_when_uncommitted(self, tmp_path: Path):
+        wt_dir = tmp_path / ".claude/worktrees/SP-099"
+        wt_dir.mkdir(parents=True)
+        with (
+            patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path),
+            patch.object(worktree_mod, "_has_uncommitted_changes", return_value=True),
+            patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run,
+        ):
+            worktree_mod._remove_stale_worktree("SP-099")
+            mock_run.assert_not_called()
+
+
+class TestWatchProcessCleanup:
+    @pytest.mark.asyncio
+    async def test_watch_calls_cleanup_on_success(self, store: StateStore):
+        run_id = store.start_run("SP-099", pid=999)
+        mock_proc = AsyncMock()
+        mock_proc.wait = AsyncMock(return_value=0)
+
+        with patch.object(worktree_mod, "_cleanup_worktree") as mock_cleanup:
+            await worktree_mod._watch_process(mock_proc, "SP-099", run_id)
+            mock_cleanup.assert_called_once_with("SP-099")
+
+    @pytest.mark.asyncio
+    async def test_watch_calls_cleanup_on_failure(self, store: StateStore):
+        run_id = store.start_run("SP-099", pid=999)
+        mock_proc = AsyncMock()
+        mock_proc.wait = AsyncMock(return_value=1)
+
+        with patch.object(worktree_mod, "_cleanup_worktree") as mock_cleanup:
+            await worktree_mod._watch_process(mock_proc, "SP-099", run_id)
+            mock_cleanup.assert_called_once_with("SP-099")
+
+    @pytest.mark.asyncio
+    async def test_watch_calls_cleanup_on_exception(self, store: StateStore):
+        run_id = store.start_run("SP-099", pid=999)
+        mock_proc = AsyncMock()
+        mock_proc.wait = AsyncMock(side_effect=RuntimeError("test"))
+
+        with patch.object(worktree_mod, "_cleanup_worktree") as mock_cleanup:
+            await worktree_mod._watch_process(mock_proc, "SP-099", run_id)
+            mock_cleanup.assert_called_once_with("SP-099")
+
+
+class TestLaunchWithStaleWorktree:
+    @pytest.mark.asyncio
+    async def test_launch_removes_stale_before_create(self, store: StateStore):
+        mock_proc = AsyncMock()
+        mock_proc.pid = 12345
+        mock_proc.wait = AsyncMock(return_value=0)
+
+        with (
+            patch("sdd_orchestrator.tools.worktree.asyncio.create_subprocess_exec") as mock_exec,
+            patch.object(worktree_mod, "_remove_stale_worktree") as mock_remove,
+        ):
+            mock_exec.return_value = mock_proc
+            result = await do_launch_sdd_run("SP-099")
+
+        assert "isError" not in result
+        mock_remove.assert_called_once_with("SP-099")

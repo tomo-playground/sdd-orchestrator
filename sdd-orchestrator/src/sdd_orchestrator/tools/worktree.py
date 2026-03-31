@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import subprocess
+from pathlib import Path
 
 from claude_agent_sdk import tool
 
@@ -24,8 +26,63 @@ def set_state_store(store) -> None:
     _state_store = store
 
 
+def _safe_worktree_path(task_id: str, project_root: Path) -> Path | None:
+    """task_id로 worktree 경로를 만들되, path traversal 방지 검증."""
+    wt_dir = (project_root / ".claude/worktrees" / task_id).resolve()
+    expected_parent = (project_root / ".claude/worktrees").resolve()
+    if not str(wt_dir).startswith(str(expected_parent) + "/"):
+        logger.error("Invalid task_id path (traversal?): %s", task_id)
+        return None
+    return wt_dir
+
+
+def _has_uncommitted_changes(wt_dir: str | Path) -> bool:
+    """worktree에 uncommitted 변경(unstaged + staged + untracked)이 있는지 확인."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(wt_dir), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            return True  # git 실패 시 안전하게 "있음" 반환
+        return bool(result.stdout.strip())
+    except Exception:
+        return True  # 확인 불가 시 안전하게 "있음" 반환
+
+
+def _cleanup_worktree(task_id: str) -> None:
+    """프로세스 종료 후 worktree 디렉토리를 안전하게 삭제."""
+    from sdd_orchestrator.config import PROJECT_ROOT
+
+    wt_dir = _safe_worktree_path(task_id, PROJECT_ROOT)
+    if wt_dir is None or not wt_dir.exists():
+        return
+
+    if _has_uncommitted_changes(wt_dir):
+        logger.warning("worktree %s에 uncommitted 변경 있음 — 삭제 스킵", task_id)
+        return
+
+    try:
+        result = subprocess.run(
+            ["git", "worktree", "remove", str(wt_dir), "--force"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(PROJECT_ROOT),
+        )
+        if result.returncode == 0:
+            logger.info("worktree 자동 삭제: %s", task_id)
+        else:
+            logger.warning("worktree 삭제 실패 %s: %s", task_id, result.stderr.strip())
+    except Exception:
+        logger.warning("worktree 삭제 예외 %s", task_id, exc_info=True)
+
+
 async def _watch_process(proc: asyncio.subprocess.Process, task_id: str, run_id: int) -> None:
     """Background task: wait for process exit and update state."""
+    exit_code = -1
     try:
         exit_code = await proc.wait()
         logger.info("Worktree %s finished (exit_code=%d, run_id=%d)", task_id, exit_code, run_id)
@@ -46,6 +103,42 @@ async def _watch_process(proc: asyncio.subprocess.Process, task_id: str, run_id:
             _state_store.finish_run(run_id, exit_code=1)
         if not _has_open_pr(task_id) and _state_store:
             _state_store.set_task_status(task_id, "approved")
+    finally:
+        await asyncio.to_thread(_cleanup_worktree, task_id)
+
+
+def _remove_stale_worktree(task_id: str) -> None:
+    """잔류 worktree 감지 → 안전 체크 후 삭제. 재생성 충돌 방지."""
+    from sdd_orchestrator.config import PROJECT_ROOT
+
+    wt_dir = _safe_worktree_path(task_id, PROJECT_ROOT)
+    if wt_dir is None or not wt_dir.exists():
+        return
+
+    if _has_uncommitted_changes(wt_dir):
+        logger.warning("잔류 worktree %s에 uncommitted 변경 — 삭제 스킵", task_id)
+        return
+
+    try:
+        subprocess.run(
+            ["git", "worktree", "prune"],
+            capture_output=True,
+            timeout=5,
+            cwd=str(PROJECT_ROOT),
+        )
+        result = subprocess.run(
+            ["git", "worktree", "remove", str(wt_dir), "--force"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(PROJECT_ROOT),
+        )
+        if result.returncode == 0:
+            logger.info("잔류 worktree 삭제 완료: %s", task_id)
+        else:
+            logger.warning("잔류 worktree 삭제 실패 %s: %s", task_id, result.stderr.strip())
+    except Exception:
+        logger.warning("잔류 worktree 삭제 예외 %s", task_id, exc_info=True)
 
 
 async def do_launch_sdd_run(task_id: str) -> dict:
@@ -79,6 +172,9 @@ async def do_launch_sdd_run(task_id: str) -> dict:
 
     try:
         from sdd_orchestrator.config import PROJECT_ROOT
+
+        # 잔류 worktree 감지 → 삭제 후 생성
+        await asyncio.to_thread(_remove_stale_worktree, task_id)
 
         proc = await asyncio.create_subprocess_exec(
             "claude",
@@ -141,7 +237,6 @@ def _has_open_pr(task_id: str) -> str | None:
     (e.g. SP-117 must not match feat/SP-111-xxx).
     """
     import re
-    import subprocess
 
     from sdd_orchestrator.tools.github import _repo_args
 

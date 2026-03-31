@@ -114,7 +114,7 @@ for BRANCH in $MERGED; do
   git worktree prune 2>/dev/null || true
   for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/*"${SP_ID}"*; do
     [ -d "$WT_DIR" ] || continue
-    if pgrep -f "worktree.*${SP_ID}" > /dev/null 2>&1; then
+    if pgrep -af "claude" 2>/dev/null | grep -qF -- "${SP_ID}"; then
       echo "⚠️ worktree 스킵 (Claude 세션 실행 중): $WT_DIR"
     else
       git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $(basename "$WT_DIR")" || true
@@ -151,7 +151,7 @@ for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/*/; do
   ZID=$(basename "$WT_DIR" | grep -oE 'SP-[0-9]+' || true)
   [ -z "$ZID" ] && continue
   if ls "$PROJECT_DIR/.claude/tasks/done/${ZID}_"* >/dev/null 2>&1; then
-    if pgrep -f "worktree.*${ZID}" > /dev/null 2>&1; then
+    if pgrep -af "claude" 2>/dev/null | grep -qF -- "${ZID}"; then
       echo "⚠️ 좀비 스킵 (세션 실행 중): $WT_DIR"
     else
       git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🧟 좀비 워크트리 삭제: $(basename "$WT_DIR")" || true
@@ -159,11 +159,25 @@ for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/*/; do
   fi
 done
 
-# ── 고아 워크트리 정리 (agent-*, silly-*, stale) ──
+# ── PID-less 워크트리 일괄 정리 (SP-*, claude+issue-*, agent-*, 모든 패턴) ──
 git worktree prune 2>/dev/null || true
-for ORPHAN_DIR in "$PROJECT_DIR/.claude/worktrees"/agent-* "$PROJECT_DIR/.claude/worktrees"/silly-*; do
-  [ -d "$ORPHAN_DIR" ] || continue
-  git worktree remove "$ORPHAN_DIR" --force 2>/dev/null && echo "🗑️ 고아 worktree 삭제: $(basename "$ORPHAN_DIR")" || true
+for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/*/; do
+  [ -d "$WT_DIR" ] || continue
+  WT_NAME=$(basename "$WT_DIR")
+
+  # 실행 중인 claude 프로세스가 이 worktree를 사용 중인지 확인
+  # grep -F (고정 문자열) — claude+issue-* 등의 regex 특수문자 안전 처리
+  if pgrep -af "claude" 2>/dev/null | grep -qF -- "--worktree $WT_NAME"; then
+    continue  # 프로세스 살아있음 → 스킵
+  fi
+
+  # 안전 체크: uncommitted 변경 확인
+  if git -C "$WT_DIR" status --porcelain 2>/dev/null | grep -q .; then
+    echo "⚠️ worktree 스킵 (uncommitted 변경): $WT_NAME"
+    continue
+  fi
+
+  git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🗑️ PID-less worktree 삭제: $WT_NAME" || true
 done
 # worktrees/ 내 빈 디렉토리 정리
 find "$PROJECT_DIR/.claude/worktrees" -maxdepth 1 -type d -empty -delete 2>/dev/null || true
