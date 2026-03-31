@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: write
   issues: write
 
 jobs:
@@ -49,6 +50,25 @@ jobs:
           else
             echo "status=healthy" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Cancel zombie workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # timeout-minutes의 2배를 초과한 in_progress run을 자동 취소
+          NOW=$(date -u +%s)
+          ZOMBIE=""
+          gh run list --status in_progress --json databaseId,createdAt,name \
+            --jq '.[] | "\(.databaseId)\t\(.createdAt)\t\(.name)"' 2>/dev/null | \
+          while IFS=$'\t' read -r RUN_ID CREATED NAME; do
+            CREATED_TS=$(date -u -d "$CREATED" +%s 2>/dev/null || echo 0)
+            ELAPSED=$(( (NOW - CREATED_TS) / 60 ))
+            # 90분 초과 = 좀비 (최대 timeout 45분의 2배)
+            if [ "$ELAPSED" -gt 90 ]; then
+              gh run cancel "$RUN_ID" 2>/dev/null && echo "🧟 좀비 취소: $NAME (${ELAPSED}분 경과, run=$RUN_ID)" || true
+              ZOMBIE="${ZOMBIE}${NAME}(${ELAPSED}m) "
+            fi
+          done
 
       - name: Close resolved issues
         if: steps.health.outputs.status == 'healthy'
