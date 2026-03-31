@@ -1,6 +1,5 @@
 # SP-124: Worktree 자동 정리 — 프로세스 종료 후 잔류 방지
 
-- **status**: pending
 - **branch**: feat/SP-124_worktree-auto-cleanup
 - **priority**: P1
 - **scope**: sdd-orchestrator, .claude/scripts
