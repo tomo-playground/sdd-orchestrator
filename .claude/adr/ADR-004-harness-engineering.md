@@ -111,7 +111,7 @@ do_launch_sdd_run(task_id)
   1. worktree 생성
   2. [Initializer] SDK query_agent() — spec.md → features.json + progress.txt + init.sh → 커밋
      (design.py auto_design_task() 패턴 재사용 — query_agent → 파일 쓰기 → 상태 업데이트 → 커밋)
-  3. state: approved → initializing → running
+  3. state: approved → running
   4. [Generator] CLI subprocess (claude --worktree) — on-stop.sh 기계적 게이트 포함
   5. _watch_process → exit 후 Phase 2 분기 (complexity 판정)
   → PR
