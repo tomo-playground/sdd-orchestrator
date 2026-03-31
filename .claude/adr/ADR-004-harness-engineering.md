@@ -68,6 +68,7 @@
 #### Phase 0. 컨텍스트 격리
 
 - 에이전트 파일 삭제/흡수 (위 표)
+- **동기화 필수**: `.claude/agents/` 삭제 시 `sdd-orchestrator/templates/agents/`도 동기 삭제. 미삭제 시 `sdd-orchestrator init`가 재생성
 - 한 세션에 **1개 역할만** 로드
 - CLAUDE.md 워크플로우 룰 업데이트
 
@@ -172,8 +173,8 @@ pending → design → approved → running → done/failed
 
 | Phase | 구현체 | 위치 | 오케스트레이터 영향 |
 |-------|--------|------|------------------|
-| Phase 0 | 파일 삭제 + CLAUDE.md 수정 | `.claude/agents/`, `CLAUDE.md` | 없음 |
-| Phase 1 Init | sdd-run 프롬프트 Step 1 추가 | `.claude/commands/sdd-run.md` | 없음 |
+| Phase 0 | 파일 삭제 + CLAUDE.md 수정 | `.claude/agents/` + `sdd-orchestrator/templates/agents/` | 템플릿 동기 삭제 |
+| Phase 1 Init | sdd-run 프롬프트 Step 1 추가 | `.claude/commands/sdd-run.md` (프로젝트측 수정. 범용 템플릿 `sdd-orchestrator/templates/commands/sdd-run.md`는 별도 판단) | 없음 |
 | Phase 1 품질 게이트 | on-stop.sh 확장 (features.json 해시 + passes 검증) | `.claude/hooks/on-stop.sh` | 없음 |
 | Phase 2 Evaluator | on-stop.sh에서 별도 `claude -p` 호출 | `.claude/hooks/on-stop.sh` | 없음 |
 
