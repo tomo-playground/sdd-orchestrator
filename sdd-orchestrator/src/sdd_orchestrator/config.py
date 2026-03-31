@@ -25,13 +25,13 @@ AGENT_QUERY_TIMEOUT = 600  # seconds — query_agent asyncio timeout
 
 # ── Feature Flags ──────────────────────────────────────────
 ENABLE_AUTO_DESIGN = os.environ.get("ORCH_AUTO_DESIGN", "0") == "1"
+ENABLE_AUTO_ISSUES = os.environ.get("ORCH_AUTO_ISSUES", "0") == "1"
 
 # ── Auto-Run (Phase 2) ────────────────────────────────────
 MAX_PARALLEL_RUNS = int(os.environ.get("ORCH_MAX_PARALLEL", "2"))
 ENABLE_AUTO_RUN = os.environ.get("ORCH_AUTO_RUN", "0") == "1"
 
 # ── Auto-Issues (GitHub Issue → SDD Task) ────────────────
-ENABLE_AUTO_ISSUES = os.environ.get("ORCH_AUTO_ISSUES", "0") == "1"
 ISSUE_ALLOWED_LABELS: frozenset[str] = frozenset({"sentry", "bug"})
 ISSUE_MAX_BODY_LEN = 4000
 ISSUE_SCAN_LIMIT = 50

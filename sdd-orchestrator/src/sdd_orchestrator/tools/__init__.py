@@ -41,7 +41,6 @@ def create_orchestrator_mcp_server():
         from sdd_orchestrator.tools.issues import auto_create_task, scan_issues
 
         tools.extend([scan_issues, auto_create_task])
-
     if ENABLE_AUTO_RUN:
         tools.extend([launch_sdd_run, merge_pr, trigger_sdd_review])
 
