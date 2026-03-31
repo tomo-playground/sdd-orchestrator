@@ -26,6 +26,10 @@ jobs:
           NODE_DIR="$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ | tail -1)/bin"
           echo "$NODE_DIR" >> "$GITHUB_PATH"
 
+      - name: Install dependencies
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
       - name: Wait for dev servers
         run: |
           for i in $(seq 1 10); do
