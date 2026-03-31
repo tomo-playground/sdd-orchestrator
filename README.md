@@ -1,259 +1,104 @@
-# Shorts Producer
+# SDD Orchestrator
 
-**Shorts Producer**는 쇼츠 영상 콘텐츠 제작을 자동화하는 AI 기반 워크스페이스입니다. **LangGraph** 기반 Agentic AI Pipeline에서 **Google Gemini**가 스토리보드를 기획하고, **Stable Diffusion**으로 이미지를 생성하며, **Qwen3-TTS (12Hz)**로 음성을 합성하고, **FFmpeg**로 최종 영상을 렌더링합니다.
+Autonomous AI task execution engine for **Spec-Driven Development (SDD)**.
 
-## System Architecture
+Humans write specs (DoD), AI handles design → TDD (RED→GREEN) → PR — autonomously.
 
-시스템은 **V3 관계형 스키마** + **LangGraph Agentic Pipeline**을 채택하여, 여러 AI 에이전트가 자율적으로 협업하며 고품질 영상을 생성합니다.
+## Quick Start
 
-```mermaid
-graph TB
-    User([User])
-
-    subgraph Frontend ["Frontend — Next.js 16 · React 19"]
-        direction TB
-        Pages["Pages: Home · Studio · Scripts · Storyboards · Library · Settings"]
-        Store["Zustand 5-Store<br/>Context · Storyboard · Render · UI · Chat"]
-        Hooks["55 Custom Hooks"]
-        Pages --- Store --- Hooks
-    end
-
-    subgraph Backend ["Backend — FastAPI · Python 3.13"]
-        API["28 REST API Routers"]
-
-        subgraph Pipeline ["Agentic Pipeline — LangGraph"]
-            direction LR
-            Nodes["21 Agent Nodes<br/>Intake · Director Plan · Plan Gate · Writer<br/>Critic · Research · Location Planner<br/>Cinematographer · Review · Sound · TTS ..."]
-            Tools["10 Gemini Tools<br/>Research 5 + Cine 5"]
-            Nodes --- Tools
-        end
-
-        subgraph Services ["Core Services"]
-            direction LR
-            Prompt["12-Layer<br/>Prompt Engine"]
-            ImgGen["Image<br/>Generator"]
-            TTS["Qwen3-TTS<br/>Local MPS"]
-            Render["FFmpeg<br/>Renderer"]
-        end
-
-        API --> Pipeline
-        API --> Services
-    end
-
-    subgraph Infra ["Infrastructure"]
-        direction LR
-        DB[("PostgreSQL<br/>32 Models · Alembic")]
-        S3[("MinIO / S3<br/>Media Storage")]
-        LangFuse["LangFuse<br/>Observability"]
-    end
-
-    subgraph External ["External APIs"]
-        direction LR
-        SD["SD WebUI / ComfyUI<br/>SDXL · ControlNet<br/>IP-Adapter"]
-        Gemini["Google Gemini<br/>Function Calling"]
-    end
-
-    User <-->|"HTTP · SSE"| Frontend
-    Frontend <-->|"REST JSON"| API
-
-    Pipeline <-->|"Function Calling"| Gemini
-    ImgGen <-->|"txt2img · img2img"| SD
-    Render -->|"Upload"| S3
-    Pipeline -.->|"Trace"| LangFuse
-    API <--> DB
-    Services <--> DB
-```
-
-### Agentic Pipeline Flow
-
-21개 에이전트 노드가 **Interaction Mode** (Guided/Fast)와 **skip_stages** 파라미터에 따라 자율 협업합니다. Director가 Plan→Checkpoint→ReAct Loop으로 품질을 관리하고, Score 기반 라우팅으로 안전망을 제공합니다.
-
-```mermaid
-flowchart TD
-    START(("START"))
-
-    START -->|"skip_stages 직접 지정"| writer
-    START -->|"Fast"| director_plan["Director Plan<br/>목표 수립"]
-    START -->|"Guided"| intake["Intake<br/>의도 파악"]
-
-    intake --> director_plan
-    director_plan --> director_plan_gate{"Plan Gate"}
-    director_plan_gate -->|"Plan 승인"| inventory_resolve
-    director_plan_gate -.->|"Plan 반려/수정"| director_plan
-
-    inventory_resolve --> research["Research<br/>5 Tools · Memory Store"]
-    research --> critic["Critic<br/>3-Architect Debate"]
-    critic --> concept_gate{"Concept<br/>Gate"}
-    concept_gate -->|"Select"| location["Location Planner<br/>배경 설계"]
-    concept_gate -.->|"Regenerate"| critic
-
-    location --> writer["Writer<br/>Planning + Script Gen"]
-
-    writer --> review["Review<br/>Rule + Gemini + NarrativeScore"]
-
-    review -->|"Pass · Full"| checkpoint["Director Checkpoint<br/>Score-Based Gate"]
-    review -->|"Pass · Quick"| finalize["Finalize<br/>Merge Results"]
-    review -->|"Fail"| revise["Revise<br/>History 누적 + Re-gen"]
-    revise --> review
-
-    checkpoint -->|"Proceed (≥0.7)"| cine["Cinematographer<br/>4 Tools · Danbooru Tags"]
-    checkpoint -.->|"Revise (<0.7)"| writer
-
-    cine --> fan{"Fan-out"}
-    fan --> tts["TTS Designer"]
-    fan --> sound["Sound Designer"]
-    fan --> copyright["Copyright Reviewer"]
-
-    tts --> director
-    sound --> director
-    copyright --> director["Director<br/>ReAct 3-Step · Message Protocol"]
-
-    director -->|"Approve"| human{"Human<br/>Gate"}
-    director -.->|"Revise Script"| revise
-    director -.->|"Revise Production"| cine
-
-    human -->|"Approve"| finalize
-    human -.->|"Revise"| revise
-
-    finalize -->|"Full"| explain["Explain<br/>Creative Reasoning"]
-    finalize -->|"Quick"| learn
-    explain --> learn["Learn<br/>Memory Update"]
-    learn --> DONE(("END"))
-
-    style START fill:#4CAF50,color:#fff
-    style DONE fill:#4CAF50,color:#fff
-    style intake fill:#FF9800,color:#fff
-    style location fill:#607D8B,color:#fff
-    style fan fill:#FF9800,color:#fff
-    style concept_gate fill:#2196F3,color:#fff
-    style checkpoint fill:#9C27B0,color:#fff
-    style human fill:#2196F3,color:#fff
-    style director fill:#9C27B0,color:#fff
-    style director_plan fill:#9C27B0,color:#fff
-```
-
-## 주요 기능
-
-1.  **Agentic AI Pipeline**: Intake, Director, Writer, Critic, Research, Cinematographer 등 21개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
-    - 2단계 협업형 UX (Guided/Fast) 및 Stage-Level Skip 지원
-    - Revision History 누적 (동일 실패 반복 방지), 최대 리비전 3회
-    - Tool-Calling (Gemini Function Calling 10개), 3-Architect Debate, NarrativeScore
-2.  **12-Layer Prompt Engine**: 캐릭터의 고유 속성(Trait)과 임시 속성(Outfit)을 분리하여 일관성 있는 이미지를 생성합니다.
-3.  **지능형 검수**:
-    - **WD14 Tagger**: 생성 이미지와 프롬프트 키워드 일치 여부를 정량 검증합니다.
-    - **Gemini Vision**: 검증 점수가 낮으면 이미지를 시각 분석하여 보정합니다.
-4.  **TTS & 렌더링**: Qwen3-TTS (12Hz) 로컬 음성 합성 (오디오 정규화) + AI BGM + FFmpeg 영상 합성으로 최종 영상을 완성합니다.
-5.  **스마트 렌더링**: 얼굴 감지 기반 크롭, 동적 Scene Text 높이, 플랫폼별 Safe Zone, 배경 밝기 기반 텍스트 색상 자동 조정.
-
-## 기술 스택
-
-| 레이어 | 기술 |
-|--------|------|
-| Backend | FastAPI, Python 3.13 |
-| Frontend | Next.js 16, React 19, Zustand 5 (5-Store), Tailwind CSS 4 |
-| DB | PostgreSQL, SQLAlchemy, Alembic |
-| AI Pipeline | LangGraph, Google Gemini (`google-genai`), LangFuse 프롬프트 관리 |
-| Image Gen | Stable Diffusion WebUI / ComfyUI (SDXL), ControlNet, IP-Adapter |
-| TTS | Qwen3-TTS (12Hz, 로컬 MPS) |
-| Video | FFmpeg (Ken Burns, 13종 전환 효과) |
-| Storage | MinIO/S3 |
-| Observability | LangFuse (셀프호스팅) |
-| Testing | pytest (Backend), Vitest (Frontend), Playwright (VRT/E2E) |
-
-## Project Structure
-
-### Backend (`/backend`)
-```
-backend/
-├── routers/          # 도메인별 API 엔드포인트 (28개 라우터)
-├── services/
-│   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   21개 에이전트 노드 + 유틸리티 모듈
-│   │   ├── tools/    #   Gemini Function Calling 10개 도구
-│   │   ├── state.py  #   ScriptState (Graph State)
-│   │   └── routing.py#   14개 조건부 라우팅 함수
-│   ├── video/        # FFmpeg 렌더링 파이프라인
-│   ├── prompt/       # 12-Layer Prompt Builder
-│   ├── keywords/     # 태그 시스템 (캐시, 검증, 분류)
-│   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
-│   └── characters/   # 캐릭터 관리, LoRA 연동
-├── models/           # SQLAlchemy ORM 32개 모델 (V3 Relational Schema)
-├── schemas.py        # Pydantic Request/Response 모델
-├── config.py         # 환경변수/상수 SSOT
-└── main.py           # FastAPI 앱 + Lifespan
-```
-
-### Frontend (`/frontend`)
-```
-frontend/
-├── app/
-│   ├── (service)/
-│   │   ├── page.tsx       # Home (창작 대시보드)
-│   │   ├── studio/        # Studio (씬 편집 워크스페이스)
-│   │   ├── scripts/       # Scripts (Manual + AI Agent 대본 생성)
-│   │   ├── storyboards/   # Storyboards (스토리보드 관리)
-│   │   ├── library/       # Library (에셋 통합 관리)
-│   │   └── settings/      # Settings (프로젝트/시스템 설정)
-│   ├── components/        # 공유 UI 컴포넌트 (18개 디렉토리)
-│   ├── hooks/             # Custom Hooks (55개)
-│   ├── store/             # Zustand 5-Store (Context/Storyboard/Render/UI/Chat)
-│   └── utils/             # 유틸리티
-├── tests/                 # Vitest 단위 테스트 + Playwright VRT/E2E
-└── package.json
-```
-
-## Getting Started
-
-### Prerequisites
-1.  **Stable Diffusion WebUI**: `--api` 플래그 활성화
-2.  **Google Gemini API Key**: `backend/.env` 설정
-3.  **FFmpeg**: 시스템 설치
-4.  **PostgreSQL**: DB 인스턴스
-
-### Installation
-
-**Audio Server (TTS & MusicGen):**
 ```bash
-./run_audio.sh start
+# Install
+pip install sdd-orchestrator
+
+# Initialize in your project
+cd your-project
+sdd init
+
+# Configure
+# Edit sdd.config.yaml with your GitHub repo, Sentry, etc.
+
+# Run the orchestrator daemon
+sdd-orchestrator
 ```
 
-**Backend:**
-```bash
-cd backend
-# .env 설정 (DATABASE_URL, GEMINI_API_KEY 등)
-uv run main.py
+## What it does
+
+The SDD Orchestrator runs a continuous cycle:
+
+1. **Scans** your backlog and task specs
+2. **Checks** open PRs, CI status, and Sentry errors
+3. **Launches** approved tasks as autonomous Claude agents in git worktrees
+4. **Merges** PRs that pass all quality gates (CI + review approved)
+5. **Monitors** post-merge Sentry errors and auto-reverts on surge
+6. **Notifies** via Slack with structured reports
+
+## Architecture
+
+```
+sdd-orchestrator/
+├── src/sdd_orchestrator/
+│   ├── main.py           # Daemon event loop
+│   ├── config.py          # Engine-level constants
+│   ├── project_config.py  # YAML-driven project settings
+│   ├── agents.py          # Claude Agent SDK options
+│   ├── state.py           # SQLite state store
+│   ├── rules.py           # Auto-merge/approve rules
+│   ├── utils.py           # Agent query helper
+│   ├── cli/               # `sdd init` command
+│   ├── tools/             # MCP tools (11 tools)
+│   ├── prompts/           # Agent system prompts
+│   └── templates/         # `sdd init` templates
+├── tests/                 # 17 test files
+└── pyproject.toml
 ```
 
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
+## Configuration
+
+Create `sdd.config.yaml` in your project root (or run `sdd init`):
+
+```yaml
+project:
+  github:
+    owner: your-org
+    repo: your-repo
+    assignee: your-github-username
+  sentry:
+    org: your-sentry-org
+    projects:
+      - your-backend
+      - your-frontend
+  tasks:
+    dir: .claude/tasks
+    backlog: backlog.md
+
+engine:
+  cycle_interval: 180        # seconds between cycles
+  max_parallel_runs: 2        # concurrent worktree slots
 ```
 
-## Testing
+## Environment Variables
 
-- **Backend**: `cd backend && uv run pytest` (~3,900개 테스트)
-- **Frontend**: `cd frontend && npm test` (~610개 테스트)
-- **VRT**: `cd frontend && npm run test:vrt`
-- **총 ~4,500개 테스트**
+| Variable | Description |
+|----------|-------------|
+| `SDD_PROJECT_ROOT` | Override project root (default: CWD) |
+| `ORCH_AUTO_RUN` | Enable auto-launch of approved tasks (0/1) |
+| `ORCH_AUTO_DESIGN` | Enable auto-design of pending tasks (0/1) |
+| `SENTRY_AUTH_TOKEN` | Sentry API token for error monitoring |
+| `SLACK_BOT_TOKEN` | Slack Bot token for notifications |
+| `SLACK_APP_TOKEN` | Slack App token for Socket Mode |
 
-## Documentation
+## Task Lifecycle
 
-### Product
-- [Roadmap](docs/01_product/ROADMAP.md)
-- [PRD](docs/01_product/PRD.md)
-- [Feature Specs](docs/01_product/FEATURES/)
+```
+backlog → pending → design → approved → running → done
+```
 
-### Engineering
-- [System Overview](docs/03_engineering/architecture/SYSTEM_OVERVIEW.md)
-- [DB Schema](docs/03_engineering/architecture/DB_SCHEMA.md)
-- [API Reference](docs/03_engineering/api/REST_API.md)
-- [Test Strategy](docs/03_engineering/testing/TEST_STRATEGY.md)
-- [Render Pipeline](docs/03_engineering/backend/RENDER_PIPELINE.md)
+- **pending**: Spec written, no design yet
+- **design**: Design written, awaiting human approval
+- **approved**: Ready to run — orchestrator launches worktree
+- **running**: Implementation in progress
+- **done**: Completed and merged
 
-### Design & Operations
-- [Design Guide](docs/02_design/STUDIO_DESIGN_GUIDE.md)
-- [Deployment](docs/04_operations/DEPLOYMENT.md)
-- [TTS Setup](docs/04_operations/TTS_SETUP.md)
-- [SD WebUI Setup](docs/04_operations/SD_WEBUI_SETUP.md)
+## License
+
+MIT

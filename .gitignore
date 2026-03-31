@@ -1,73 +1,12 @@
-# Dependencies
-node_modules/
-.venv/
+state.db
+state.db-wal
+state.db-shm
+*.log
 __pycache__/
 *.pyc
-
-# Build outputs
-.next/
-dist/
-build/
+.venv/
 *.egg-info/
-
-# Environment
-.env
-.env.local
-.env*.local
-
-# Claude Code worktrees
-.claude/worktrees/
-
-# SDD state (SQLite — 로컬 전용, worktree 간 공유 불가)
-.sdd/
-
-# SDD Orchestrator (별도 레포: tomo-playground/sdd-orchestrator)
-sdd-orchestrator/
-
-# IDE / Tools
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-.mcp.json
-.serena/memories/
-.serena/project.yml
-.serena/project.local.yml
-
-# Outputs (generated files)
-outputs/
-projects/
-
-# Logs
 logs/
-*.log
-
-# Cache
-.cache/
-.ruff_cache/
+.env
 .pytest_cache/
-
-# Database
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-
-# Temporary
-tmp/
-temp/
-backend/.coverage
-.playwright-mcp/
-output/
-.cp-images/
-
-# Terminal Paste Image folder
-.cp-images/
-
-# Experiment data (SD image generation tests)
-test_sdxl_compare/
-forge_tuning/
-experiments/
-.env.runner
-qa-screenshots/
+uv.lock

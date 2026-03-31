@@ -1,0 +1,38 @@
+# SDD Sync — Post-merge task lifecycle management
+# Moves completed tasks from current/ to done/ after PR merge
+name: sdd-sync
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  sync:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract SP number from branch
+        id: sp
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          SP_NUM=$(echo "$BRANCH" | grep -oP 'SP-\d+' | head -1)
+          echo "sp_num=$SP_NUM" >> "$GITHUB_OUTPUT"
+
+      - name: Move task to done
+        if: steps.sp.outputs.sp_num != ''
+        run: |
+          SP="${{ steps.sp.outputs.sp_num }}"
+          TASK_DIR=$(find .claude/tasks/current -maxdepth 1 -name "${SP}_*" -type d | head -1)
+          if [ -n "$TASK_DIR" ]; then
+            mv "$TASK_DIR" .claude/tasks/done/
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .claude/tasks/
+            git commit -m "chore(sdd-sync): ${SP} -> done/"
+            git push
+          fi

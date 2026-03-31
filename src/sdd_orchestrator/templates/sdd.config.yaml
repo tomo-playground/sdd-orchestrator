@@ -1,0 +1,20 @@
+# SDD Orchestrator — Project Configuration
+# Edit this file to configure the orchestrator for your project.
+
+project:
+  github:
+    owner: your-org
+    repo: your-repo
+    assignee: your-github-username
+  sentry:
+    org: your-sentry-org
+    projects:
+      - your-project-backend
+      - your-project-frontend
+  tasks:
+    dir: .claude/tasks
+    backlog: backlog.md
+
+engine:
+  cycle_interval: 180
+  max_parallel_runs: 2
