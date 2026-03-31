@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, datetime
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -611,7 +611,6 @@ def update_storyboard_metadata(db: Session, storyboard_id: int, request: Storybo
 
 def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
     """Soft-delete a storyboard (set deleted_at timestamp)."""
-    from datetime import datetime
 
     storyboard = (
         db.query(Storyboard)
@@ -734,3 +733,76 @@ def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
         logger.exception("Failed to permanently delete storyboard %d", storyboard_id)
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to delete storyboard") from e
+
+
+def persist_pipeline_scenes(
+    db: Session,
+    storyboard_id: int,
+    scenes: list[dict],
+    *,
+    structure: str | None = None,
+    character_id: int | None = None,
+    character_b_id: int | None = None,
+) -> bool:
+    """파이프라인 finalize 결과를 DB에 직접 저장.
+
+    Returns True if saved successfully, False otherwise.
+    기존 씬을 soft-delete 후 신규 씬 생성.
+    storyboard.version을 +1하여 autoSave 충돌 방지.
+    """
+    if not scenes:
+        logger.warning("[PipelinePersist] Storyboard %d: empty scenes — skipping persist", storyboard_id)
+        return False
+
+    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
+    if not storyboard:
+        logger.warning("[PipelinePersist] Storyboard %d not found", storyboard_id)
+        return False
+
+    # 1. Soft-delete existing scenes
+    now = datetime.now(UTC)
+    db.query(Scene).filter(
+        Scene.storyboard_id == storyboard_id,
+        Scene.deleted_at.is_(None),
+    ).update({Scene.deleted_at: now}, synchronize_session=False)
+    db.flush()
+
+    # 2. Convert scene dicts → StoryboardScene pydantic objects
+    from schemas import StoryboardScene  # noqa: PLC0415
+
+    scene_models = []
+    for idx, s in enumerate(scenes):
+        scene_data = {**s, "scene_id": idx}
+        scene_models.append(StoryboardScene(**scene_data))
+
+    # 3. Create new scenes
+    create_scenes(db, storyboard_id, scene_models)
+
+    # 4. Sync speaker→character mappings
+    _sync_speaker_mappings(
+        db,
+        storyboard_id,
+        character_id,
+        character_b_id,
+        structure=structure or "",
+    )
+
+    # 5. Update storyboard fields
+    if structure:
+        storyboard.structure = structure
+    storyboard.stage_status = None  # New script → stage reset
+    storyboard.version += 1
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    db.refresh(storyboard)
+    logger.info(
+        "[PipelinePersist] Storyboard %d: %d scenes saved, version=%d",
+        storyboard_id,
+        len(scenes),
+        storyboard.version,
+    )
+    return True

@@ -264,6 +264,45 @@ async def preflight_safety_check(topic: str, description: str) -> str | None:
     return None
 
 
+async def _persist_finalized_scenes(storyboard_id: int, final_output: dict) -> bool:
+    """파이프라인 finalize 결과를 DB에 직접 저장. SSE 유실과 무관하게 씬 보존.
+
+    Returns True if persisted, False otherwise.
+    """
+    import asyncio  # noqa: PLC0415
+
+    from database import get_db_session  # noqa: PLC0415
+    from services.storyboard.crud import persist_pipeline_scenes  # noqa: PLC0415
+
+    def _do_persist() -> bool:
+        with get_db_session() as db:
+            return persist_pipeline_scenes(
+                db,
+                storyboard_id,
+                final_output.get("scenes", []),
+                structure=final_output.get("structure"),
+                character_id=final_output.get("character_id"),
+                character_b_id=final_output.get("character_b_id"),
+            )
+
+    try:
+        result = await asyncio.to_thread(_do_persist)
+        if result:
+            logger.info("[SSE] Pipeline scenes persisted for storyboard %d", storyboard_id)
+            return True
+        logger.warning("[SSE] Pipeline persist skipped for storyboard %d", storyboard_id)
+        return False
+    except Exception:
+        logger.exception("[SSE] Failed to persist pipeline scenes for storyboard %d", storyboard_id)
+        try:
+            import sentry_sdk  # noqa: PLC0415
+
+            sentry_sdk.capture_exception()
+        except Exception:
+            pass
+        return False
+
+
 async def stream_graph_events(
     graph_input: object,
     config: dict,
@@ -440,6 +479,20 @@ async def stream_graph_events(
         else:
             # 정상 완료 시 interrupted: True stale 메타데이터를 리셋하고 최종 결과를 output에 기록
             update_trace_on_completion(trace_id=handler_trace_id, output_data=final_output)
+
+            # NEW: 파이프라인 결과를 DB에 직접 저장 (SSE 유실 방지)
+            if final_output and storyboard_id:
+                persisted = await _persist_finalized_scenes(storyboard_id, final_output)
+                if not persisted:
+                    warn_payload = {
+                        "node": "persist",
+                        "label": "저장 경고",
+                        "percent": 97,
+                        "status": "warning",
+                        "error": "서버 측 자동 저장에 실패했습니다. 씬 데이터를 수동으로 저장해주세요.",
+                        "storyboard_id": storyboard_id,
+                    }
+                    yield f"data: {json.dumps(warn_payload, ensure_ascii=False)}\n\n"
 
         # 스트리밍 완료/에러 시 SDK 버퍼 플러시 + root span 종료
         flush_langfuse()
