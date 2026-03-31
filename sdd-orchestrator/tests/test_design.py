@@ -1,4 +1,4 @@
-"""Unit tests for auto-design tool."""
+"""Unit tests for auto-design tool and design retry approval."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from sdd_orchestrator.main import OrchestratorDaemon
 from sdd_orchestrator.state import StateStore
 from sdd_orchestrator.tools.design import (
     _find_task_dir,
@@ -150,3 +151,162 @@ class TestAutoDesignTask:
         # No design.md should be created
         task_dir = _patch_paths
         assert not (task_dir / "design.md").exists()
+
+
+# ── Retry Design Approval Tests ──────────────────────────
+
+
+# Simple design.md content without BLOCKER (auto-approvable)
+_SIMPLE_DESIGN = """\
+## 변경 파일 요약
+
+| 파일 | 변경 |
+|------|------|
+| `config.py` | 상수 추가 |
+| `agents.py` | 함수 추가 |
+"""
+
+# Design with BLOCKER (not auto-approvable)
+_BLOCKER_DESIGN = """\
+## 변경 파일 요약
+
+| 파일 | 변경 |
+|------|------|
+| `config.py` | 상수 추가 |
+
+**BLOCKER**: 사람 승인 필요
+"""
+
+
+@pytest.fixture()
+def daemon(tmp_path: Path) -> OrchestratorDaemon:
+    """Minimal daemon for testing retry logic."""
+    return OrchestratorDaemon(interval=0, db_path=tmp_path / "test.db")
+
+
+@pytest.fixture()
+def retry_env(tmp_path: Path, daemon: OrchestratorDaemon):
+    """Create a task directory with design.md for retry tests."""
+    current = tmp_path / "current"
+    current.mkdir()
+    task_dir = current / "SP-200_retry-test"
+    task_dir.mkdir()
+    daemon.state.set_task_status("SP-200", "design")
+    yield daemon, task_dir, current
+
+
+class TestRetryDesignApproval:
+    """Tests for OrchestratorDaemon._retry_design_approval()."""
+
+    async def test_retry_approves_design_task(self, retry_env):
+        """design + no BLOCKER -> approved 전환."""
+        daemon, task_dir, current = retry_env
+        (task_dir / "design.md").write_text(_SIMPLE_DESIGN, encoding="utf-8")
+
+        with (
+            patch("sdd_orchestrator.main.ENABLE_AUTO_DESIGN", True),
+            patch("sdd_orchestrator.main.TASKS_CURRENT_DIR", current),
+            patch("sdd_orchestrator.main.git_commit_files", new_callable=AsyncMock) as mock_git,
+        ):
+            mock_git.return_value = None
+            await daemon._retry_design_approval()
+
+        assert daemon.state.get_task_status("SP-200") == "approved"
+        mock_git.assert_called_once()
+
+    async def test_retry_skips_when_auto_design_disabled(self, retry_env):
+        """ENABLE_AUTO_DESIGN=False -> 재평가 스킵."""
+        daemon, task_dir, current = retry_env
+        (task_dir / "design.md").write_text(_SIMPLE_DESIGN, encoding="utf-8")
+
+        with (
+            patch("sdd_orchestrator.main.ENABLE_AUTO_DESIGN", False),
+            patch("sdd_orchestrator.main.TASKS_CURRENT_DIR", current),
+        ):
+            await daemon._retry_design_approval()
+
+        # Status unchanged
+        assert daemon.state.get_task_status("SP-200") == "design"
+
+    async def test_retry_skips_no_design_md(self, retry_env):
+        """design.md 없음 -> warning + 스킵."""
+        daemon, task_dir, current = retry_env
+        # No design.md written
+
+        with (
+            patch("sdd_orchestrator.main.ENABLE_AUTO_DESIGN", True),
+            patch("sdd_orchestrator.main.TASKS_CURRENT_DIR", current),
+        ):
+            await daemon._retry_design_approval()
+
+        assert daemon.state.get_task_status("SP-200") == "design"
+
+    async def test_retry_respects_max_attempts(self, retry_env):
+        """3회 실패 후 can_auto_approve 미호출."""
+        daemon, task_dir, current = retry_env
+        (task_dir / "design.md").write_text(_BLOCKER_DESIGN, encoding="utf-8")
+
+        # Exhaust 3 attempts
+        for _ in range(3):
+            daemon.state.increment_approval_attempts("SP-200")
+
+        with (
+            patch("sdd_orchestrator.main.ENABLE_AUTO_DESIGN", True),
+            patch("sdd_orchestrator.main.TASKS_CURRENT_DIR", current),
+            patch("sdd_orchestrator.main.can_auto_approve") as mock_approve,
+            patch("sdd_orchestrator.main.do_notify_human", new_callable=AsyncMock),
+        ):
+            await daemon._retry_design_approval()
+
+        mock_approve.assert_not_called()
+
+    async def test_retry_sends_notification_on_3rd_failure(self, retry_env):
+        """3회차 실패 시 do_notify_human 1회 호출."""
+        daemon, task_dir, current = retry_env
+        (task_dir / "design.md").write_text(_BLOCKER_DESIGN, encoding="utf-8")
+
+        # Already failed 2 times
+        daemon.state.increment_approval_attempts("SP-200")
+        daemon.state.increment_approval_attempts("SP-200")
+
+        with (
+            patch("sdd_orchestrator.main.ENABLE_AUTO_DESIGN", True),
+            patch("sdd_orchestrator.main.TASKS_CURRENT_DIR", current),
+            patch("sdd_orchestrator.main.do_notify_human", new_callable=AsyncMock) as mock_notify,
+        ):
+            await daemon._retry_design_approval()
+
+        mock_notify.assert_called_once()
+        call_args = mock_notify.call_args[0][0]
+        assert "3회 실패" in call_args["message"]
+        assert call_args["level"] == "warning"
+
+    async def test_retry_no_duplicate_notification(self, retry_env):
+        """4회차에서 do_notify_human 재호출 안 됨."""
+        daemon, task_dir, current = retry_env
+        (task_dir / "design.md").write_text(_BLOCKER_DESIGN, encoding="utf-8")
+
+        # Already exhausted 3 attempts
+        for _ in range(3):
+            daemon.state.increment_approval_attempts("SP-200")
+
+        with (
+            patch("sdd_orchestrator.main.ENABLE_AUTO_DESIGN", True),
+            patch("sdd_orchestrator.main.TASKS_CURRENT_DIR", current),
+            patch("sdd_orchestrator.main.do_notify_human", new_callable=AsyncMock) as mock_notify,
+        ):
+            await daemon._retry_design_approval()
+
+        mock_notify.assert_not_called()
+
+    def test_approval_attempts_persist(self, tmp_path: Path):
+        """SQLite 영속성 — 재연결 후 카운터 유지."""
+        db_path = tmp_path / "persist.db"
+        store1 = StateStore(db_path=db_path)
+        store1.increment_approval_attempts("SP-300")
+        store1.increment_approval_attempts("SP-300")
+        store1.close()
+
+        store2 = StateStore(db_path=db_path)
+        assert store2.get_approval_attempts("SP-300") == 2
+        store2.close()

@@ -68,6 +68,11 @@ class StateStore:
                 status    TEXT NOT NULL DEFAULT 'pending',
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS approval_attempts (
+                task_id TEXT PRIMARY KEY,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            );
         """)
         self.conn.commit()
 
@@ -330,6 +335,34 @@ class StateStore:
         """Remove a task status row (used for rollback on creation failure)."""
         self.conn.execute("DELETE FROM task_status WHERE task_id = ?", (task_id,))
         self.conn.commit()
+
+    # ── Approval Attempts (SP-130) ────────────────────────
+
+    def get_approval_attempts(self, task_id: str) -> int:
+        """Get the number of auto-approval retry attempts for a task."""
+        row = self.conn.execute(
+            "SELECT attempts FROM approval_attempts WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+        return row["attempts"] if row else 0
+
+    def increment_approval_attempts(self, task_id: str) -> int:
+        """Increment and return the approval attempt count."""
+        now = datetime.now(UTC).isoformat()
+        self.conn.execute(
+            "INSERT INTO approval_attempts (task_id, attempts, updated_at)"
+            " VALUES (?, 1, ?)"
+            " ON CONFLICT(task_id) DO UPDATE SET"
+            " attempts = approval_attempts.attempts + 1,"
+            " updated_at = excluded.updated_at",
+            (task_id, now),
+        )
+        self.conn.commit()
+        row = self.conn.execute(
+            "SELECT attempts FROM approval_attempts WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+        return row["attempts"]
 
     def close(self) -> None:
         """Commit and close the database connection."""
