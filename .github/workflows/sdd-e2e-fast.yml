@@ -1,0 +1,61 @@
+name: SDD E2E — Fast
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdd-e2e-fast-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-fast:
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PATH
+        run: echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Wait for dev servers
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Backend ready"; break
+            fi
+            [ "$i" -eq 10 ] && { echo "Backend not available"; exit 1; }
+            sleep 1
+          done
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Frontend ready"; break
+            fi
+            [ "$i" -eq 10 ] && { echo "Frontend not available"; exit 1; }
+            sleep 1
+          done
+
+      - name: Run E2E (smoke + qa-patrol)
+        working-directory: frontend
+        env:
+          E2E_EXTERNAL_SERVER: "1"
+        run: |
+          npx playwright test e2e/smoke.spec.ts e2e/qa-patrol.spec.ts \
+            --config=playwright.e2e.config.ts \
+            --reporter=list
+
+      - name: Collect artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-fast-results-${{ github.event.pull_request.number }}
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 3
+          if-no-files-found: ignore

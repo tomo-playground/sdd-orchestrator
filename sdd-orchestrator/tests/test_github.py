@@ -100,9 +100,39 @@ class TestAggregateCheckStatus:
         checks = [{"conclusion": "SUCCESS"}, {"status": "QUEUED"}]
         assert _aggregate_check_status(checks) == "pending"
 
-    def test_empty_conclusion_pending(self):
+    def test_empty_conclusion_treated_as_success(self):
+        """Empty conclusion with no status → filtered out of real_statuses, remaining SUCCESS → success."""
         checks = [{"conclusion": "SUCCESS"}, {"conclusion": ""}]
-        assert _aggregate_check_status(checks) == "pending"
+        assert _aggregate_check_status(checks) == "success"
+
+    def test_optional_docker_e2e_ignored(self):
+        """Docker E2E (name='e2e') failure should not block — it's in CI_OPTIONAL_CHECKS."""
+        checks = [
+            {"name": "e2e-fast", "conclusion": "SUCCESS"},
+            {"name": "e2e", "conclusion": "FAILURE"},
+        ]
+        assert _aggregate_check_status(checks) == "success"
+
+    def test_fast_e2e_failure_blocks(self):
+        """Fast E2E (name='e2e-fast') failure must block — it's NOT optional."""
+        checks = [
+            {"name": "e2e-fast", "conclusion": "FAILURE"},
+            {"name": "e2e", "conclusion": "SUCCESS"},
+        ]
+        assert _aggregate_check_status(checks) == "failure"
+
+    def test_only_optional_checks_returns_none(self):
+        """When all checks are optional, treat as 'none' (no required CI)."""
+        checks = [{"name": "e2e", "conclusion": "FAILURE"}]
+        assert _aggregate_check_status(checks) == "none"
+
+    def test_context_field_filtering(self):
+        """Commit status uses 'context' instead of 'name' — both should be filtered."""
+        checks = [
+            {"context": "e2e-fast", "conclusion": "SUCCESS"},
+            {"context": "e2e", "conclusion": "FAILURE"},
+        ]
+        assert _aggregate_check_status(checks) == "success"
 
 
 class TestDetectStuckRuns:
@@ -217,6 +247,22 @@ class TestSummarizePrsMergeable:
             }
         ]
         result = summarize_prs(prs)
+        assert result[0]["mergeable"] is False
+
+    def test_mergeable_false_only_optional_checks(self):
+        """ci_status='none' (all optional) + APPROVED → mergeable=False (aligned with can_auto_merge)."""
+        prs = [
+            {
+                "number": 1,
+                "title": "feat",
+                "headRefName": "feat/SP-001",
+                "reviewDecision": "APPROVED",
+                "statusCheckRollup": [{"name": "e2e", "conclusion": "SUCCESS"}],
+                "labels": [],
+            }
+        ]
+        result = summarize_prs(prs)
+        assert result[0]["ci_status"] == "none"
         assert result[0]["mergeable"] is False
 
     def test_mergeable_false_no_review(self):

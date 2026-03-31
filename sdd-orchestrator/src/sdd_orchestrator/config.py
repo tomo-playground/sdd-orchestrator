@@ -95,6 +95,14 @@ SLACK_BOT_AGENT_MODEL = os.environ.get("SLACK_BOT_AGENT_MODEL", "claude-sonnet-4
 SLACK_BOT_MAX_TURNS = 12
 SLACK_BOT_AGENT_TIMEOUT = 120  # seconds — Sonnet is slower than Haiku
 
+# ── CI Check Filtering ────────────────────────────────────
+# Auto-merge 판정 시 무시할 check 이름 (정보성 CI — 실패해도 머지 허용)
+CI_OPTIONAL_CHECKS: frozenset[str] = frozenset(
+    {
+        "e2e",  # sdd-e2e.yml의 job 이름 (Docker E2E)
+    }
+)
+
 # ── GitHub Actions Control ────────────────────────────────
 GH_MONITORED_WORKFLOWS = [
     "sdd-review.yml",

@@ -81,7 +81,7 @@ def summarize_prs(prs: list[dict]) -> list[dict]:
         ci_status = _aggregate_check_status(checks)
 
         review = pr.get("reviewDecision")
-        mergeable = ci_status in ("success", "none") and review == "APPROVED"
+        mergeable = ci_status == "success" and review == "APPROVED"
 
         results.append(
             {
@@ -100,10 +100,19 @@ def summarize_prs(prs: list[dict]) -> list[dict]:
 
 
 def _aggregate_check_status(checks: list[dict]) -> str:
-    """Aggregate status check rollup into a single status string."""
-    if not checks:
+    """Aggregate status check rollup into a single status string.
+
+    Checks whose name matches CI_OPTIONAL_CHECKS are excluded —
+    they are informational and must not block auto-merge.
+    """
+    from sdd_orchestrator.config import CI_OPTIONAL_CHECKS
+
+    filtered = [
+        c for c in checks if (c.get("name") or c.get("context", "")) not in CI_OPTIONAL_CHECKS
+    ]
+    if not filtered:
         return "none"
-    statuses = {c.get("conclusion") or c.get("status", "") for c in checks}
+    statuses = {c.get("conclusion") or c.get("status", "") for c in filtered}
     if "FAILURE" in statuses or "failure" in statuses:
         return "failure"
     if (

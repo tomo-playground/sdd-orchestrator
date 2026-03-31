@@ -3,6 +3,12 @@ name: SDD E2E — Docker 테스트
 on:
   pull_request:
     types: [opened, synchronize]
+    paths:
+      - "Dockerfile*"
+      - "docker-compose*.yml"
+      - ".dockerignore"
+      - "backend/Dockerfile*"
+      - "frontend/Dockerfile*"
 
 permissions:
   contents: read
