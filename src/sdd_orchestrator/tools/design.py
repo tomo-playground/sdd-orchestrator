@@ -44,8 +44,11 @@ async def auto_design_task(task_id: str) -> str:
     if not task_dir:
         return f"Task {task_id} not found in current/"
 
-    # 2. Check status is pending (state.db is SSOT)
-    status = _state_store.get_task_status(task_id) if _state_store else "pending"
+    # 2. Check status is pending (state.db is SSOT — fail-closed)
+    if not _state_store:
+        logger.error("StateStore not initialized — cannot check task status")
+        return f"Task {task_id} skipped: StateStore not initialized"
+    status = _state_store.get_task_status(task_id)
     if status != "pending":
         return f"Task {task_id} status is '{status}', not 'pending' — skipping"
 
