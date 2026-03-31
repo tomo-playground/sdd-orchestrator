@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -32,6 +33,7 @@ GH_ISSUE_RE = re.compile(r"\*{0,2}gh_issue\*{0,2}:\s*#?(\d+)")
 
 # Module-level StateStore reference, set by set_state_store()
 _state_store = None
+_create_lock = asyncio.Lock()
 
 
 def set_state_store(store) -> None:
@@ -43,8 +45,11 @@ def set_state_store(store) -> None:
 # ── Helpers ──────────────────────────────────────────────────
 
 
-async def _fetch_labeled_issues(label: str) -> list[dict]:
-    """Fetch open issues with a single label via gh CLI."""
+async def _fetch_labeled_issues(label: str) -> tuple[list[dict], str | None]:
+    """Fetch open issues with a single label via gh CLI.
+
+    Returns (issues, error) where error is None on success.
+    """
     result = await _run_gh_command(
         "issue",
         "list",
@@ -59,8 +64,8 @@ async def _fetch_labeled_issues(label: str) -> list[dict]:
     )
     if "error" in result:
         logger.warning("Failed to fetch issues with label=%s: %s", label, result["error"])
-        return []
-    return result.get("data", [])
+        return [], result["error"]
+    return result.get("data", []), None
 
 
 def _get_existing_issue_mappings(
@@ -105,6 +110,77 @@ def _determine_priority(issue: dict) -> str:
     return "P2"
 
 
+def _generate_spec_content(
+    task_id: str,
+    title: str,
+    priority: str,
+    description: str,
+    issue_number: int,
+    branch_slug: str,
+) -> str:
+    """Generate spec.md content for a new task."""
+    body_section = f"\n{description}\n" if description else "\n상세 정보 없음\n"
+    return (
+        f"# {task_id}: {title}\n"
+        f"\n"
+        f"- **branch**: feat/{task_id}_{branch_slug}\n"
+        f"- **priority**: {priority}\n"
+        f"- **scope**: tbd\n"
+        f"- **assignee**: AI\n"
+        f"- **created**: {today_str()}\n"
+        f"- **gh_issue**: #{issue_number}\n"
+        f"\n"
+        f"## 배경\n"
+        f"\n"
+        f"GitHub Issue #{issue_number}에서 자동 생성.\n"
+        f"{body_section}"
+        f"\n"
+        f"## DoD (Definition of Done)\n"
+        f"\n"
+        f"1. Issue #{issue_number}에서 보고된 문제 수정\n"
+    )
+
+
+def _create_task_directory(
+    slug: str,
+    current_dir: Path,
+    done_dir: Path,
+    backlog_path: Path,
+) -> tuple[Path | None, str | None, str | None]:
+    """Create task directory, retrying on SP number collision.
+
+    Returns (task_dir, task_id, error_message).
+    """
+    for _ in range(5):
+        sp_num = next_sp_number(current_dir, done_dir, backlog_path)
+        task_id = f"SP-{sp_num:03d}"
+        candidate = current_dir / f"{task_id}_{slug}"
+        try:
+            candidate.mkdir()
+            return candidate, task_id, None
+        except FileExistsError:
+            continue
+    return None, None, "태스크 생성 충돌이 반복되어 중단했습니다."
+
+
+async def _commit_and_register(
+    task_id: str,
+    task_dir: Path,
+    spec_path: Path,
+    issue_number: int,
+) -> str | None:
+    """Commit spec.md then register task status. Returns error string or None."""
+    err = await git_commit_files(
+        [str(spec_path)],
+        f"chore: {task_id} 태스크 자동 생성 (Issue #{issue_number})",
+    )
+    if err:
+        shutil.rmtree(task_dir, ignore_errors=True)
+        return f"Git 커밋 실패: {err}"
+    _state_store.set_task_status(task_id, "pending")
+    return None
+
+
 # ── Core Logic ───────────────────────────────────────────────
 
 
@@ -114,9 +190,12 @@ async def do_scan_issues(
 ) -> dict:
     """Scan GitHub Issues (sentry/bug) for unlinked tasks."""
     all_issues: dict[int, dict] = {}
+    fetch_errors: list[str] = []
 
     for label in sorted(ALLOWED_LABELS):
-        issues = await _fetch_labeled_issues(label)
+        issues, err = await _fetch_labeled_issues(label)
+        if err:
+            fetch_errors.append(f"{label}: {err}")
         for issue in issues:
             num = issue.get("number")
             if num is not None:
@@ -125,11 +204,13 @@ async def do_scan_issues(
     existing = _get_existing_issue_mappings(current_dir, done_dir)
     unlinked = [issue for num, issue in sorted(all_issues.items()) if num not in existing]
 
-    result = {
+    result: dict = {
         "unlinked_issues": unlinked,
         "total_open": len(all_issues),
         "already_linked": len(all_issues) - len(unlinked),
     }
+    if fetch_errors:
+        result["fetch_errors"] = fetch_errors
     return _ok(json.dumps(result, ensure_ascii=False))
 
 
@@ -143,83 +224,41 @@ async def do_auto_create_task(
     from sdd_orchestrator.config import BACKLOG_PATH
 
     if not _state_store:
-        return _error(
-            "StateStore\uac00 \ucd08\uae30\ud654\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4"
-        )
+        return _error("StateStore가 초기화되지 않았습니다")
 
     issue_number = issue.get("number")
     if issue_number is None:
-        return _error("Issue number\uac00 \uc5c6\uc2b5\ub2c8\ub2e4")
+        return _error("Issue number가 없습니다")
 
-    # Double-check: skip if already linked
-    existing = _get_existing_issue_mappings(current_dir, done_dir)
-    if issue_number in existing:
-        return _ok(json.dumps({"skipped": True, "reason": "already linked"}))
+    async with _create_lock:
+        existing = _get_existing_issue_mappings(current_dir, done_dir)
+        if issue_number in existing:
+            return _ok(json.dumps({"skipped": True, "reason": "already linked"}))
 
-    title = _extract_title(issue)
-    priority = _determine_priority(issue)
-    description = _extract_description(issue)
+        title = _extract_title(issue)
+        priority = _determine_priority(issue)
+        description = _extract_description(issue)
+        slug = generate_slug(title)
+        current_dir.mkdir(parents=True, exist_ok=True)
 
-    current_dir.mkdir(parents=True, exist_ok=True)
-    slug = generate_slug(title)
+        task_dir, task_id, dir_err = _create_task_directory(
+            slug, current_dir, done_dir, backlog_path or BACKLOG_PATH
+        )
+        if dir_err:
+            return _error(dir_err)
 
-    task_dir = None
-    task_id = None
-    for _ in range(5):
-        sp_num = next_sp_number(current_dir, done_dir, backlog_path or BACKLOG_PATH)
-        task_id = f"SP-{sp_num:03d}"
-        dir_name = f"{task_id}_{slug}"
-        candidate = current_dir / dir_name
-        try:
-            candidate.mkdir()
-            task_dir = candidate
-            break
-        except FileExistsError:
-            continue
-
-    if task_dir is None:
-        return _error(
-            "\ud0dc\uc2a4\ud06c \uc0dd\uc131 \ucda9\ub3cc\uc774 \ubc18\ubcf5\ub418\uc5b4 \uc911\ub2e8\ud588\uc2b5\ub2c8\ub2e4."
+        branch_slug = generate_slug(title, max_len=30)
+        spec_path = task_dir / "spec.md"
+        spec_path.write_text(
+            _generate_spec_content(
+                task_id, title, priority, description, issue_number, branch_slug
+            ),
+            encoding="utf-8",
         )
 
-    branch_slug = generate_slug(title, max_len=30)
-    body_section = (
-        f"\n{description}\n" if description else "\n\uc0c1\uc138 \uc815\ubcf4 \uc5c6\uc74c\n"
-    )
-
-    spec_content = (
-        f"# {task_id}: {title}\n"
-        f"\n"
-        f"- **branch**: feat/{task_id}_{branch_slug}\n"
-        f"- **priority**: {priority}\n"
-        f"- **scope**: backend\n"
-        f"- **assignee**: AI\n"
-        f"- **created**: {today_str()}\n"
-        f"- **gh_issue**: #{issue_number}\n"
-        f"\n"
-        f"## \ubc30\uacbd\n"
-        f"\n"
-        f"GitHub Issue #{issue_number}\uc5d0\uc11c \uc790\ub3d9 \uc0dd\uc131.\n"
-        f"{body_section}"
-        f"\n"
-        f"## DoD (Definition of Done)\n"
-        f"\n"
-        f"1. Issue #{issue_number}\uc5d0\uc11c \ubcf4\uace0\ub41c \ubb38\uc81c \uc218\uc815\n"
-    )
-
-    spec_path = task_dir / "spec.md"
-    spec_path.write_text(spec_content, encoding="utf-8")
-
-    _state_store.set_task_status(task_id, "pending")
-
-    err = await git_commit_files(
-        [str(spec_path)],
-        f"chore: {task_id} \ud0dc\uc2a4\ud06c \uc790\ub3d9 \uc0dd\uc131 (Issue #{issue_number})",
-    )
-    if err:
-        shutil.rmtree(task_dir, ignore_errors=True)
-        _state_store.delete_task_status(task_id)
-        return _error(f"Git \ucee4\ubc0b \uc2e4\ud328: {err}")
+        commit_err = await _commit_and_register(task_id, task_dir, spec_path, issue_number)
+        if commit_err:
+            return _error(commit_err)
 
     result = {"task_id": task_id, "issue_number": issue_number, "priority": priority}
     return _ok(json.dumps(result, ensure_ascii=False))
