@@ -162,21 +162,16 @@ CLI subprocess 외부 (_watch_process 후):
 - `--fast` 테스트 샘플링 (시간 인지 불능 대응)
 - 네트워크 격리/컨테이너화는 필요 시 도입
 
-### 3. state.db 상태 전이 확장
+### 3. state.db 상태 전이
 
-현재:
+기존 상태를 유지. Initializer/Evaluator는 `running` 내부 파이프라인 단계이므로 DB 상태 추가 불필요.
+
 ```
 pending → design → approved → running → done/failed
+                                 │
+                                 └── 내부: Initializer(SDK) → Generator(CLI) → Evaluator(SDK)
+                                     (로그로 추적, DB 상태 변경 없음)
 ```
-
-Phase 1~2 도입 후:
-```
-pending → design → approved → initializing → running → evaluating → done/failed
-```
-
-- `initializing`: Initializer SDK 호출 중 (features.json 생성)
-- `evaluating`: Evaluator SDK 호출 중 (Playwright 테스트)
-- `_watch_process`에서 exit 후 complexity 판정 → evaluating 또는 done 분기
 
 ### 4. 구현 수단
 
