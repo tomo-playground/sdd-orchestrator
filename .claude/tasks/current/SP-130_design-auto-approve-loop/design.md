@@ -1,14 +1,3 @@
-Let me read the key files to get exact code for the design.
-Now let me check for existing tests and the notify module:
-Now I have all the context needed. Let me write the design.md.
-
-
-Now I have all the information needed. Let me write the design.md:
-기존 design.md가 있지만 불완전합니다 (메모리 dict 사용 → 재시작 시 리셋, 변경 파일 1개만 기재). 개선된 설계로 덮어쓰겠습니다.
-설계 파일이 sensitive file 제한으로 직접 쓸 수 없습니다. 아래에 완성된 design.md 전문을 출력합니다.
-
----
-
 # SP-130: design 상태 태스크 자동 승인 재평가 루프 — 상세 설계
 
 ## 변경 파일 요약
