@@ -244,6 +244,43 @@ class TestDoAutoCreateTask:
         assert data["priority"] == "P1"
 
     @pytest.mark.asyncio
+    async def test_rollback_undoes_local_commit_on_push_failure(self, tmp_path):
+        """Push failure (commit exists locally) should call git_undo_last_commit."""
+        current = tmp_path / "current"
+        done = tmp_path / "done"
+        backlog = tmp_path / "backlog.md"
+        current.mkdir()
+        done.mkdir()
+        backlog.write_text("")
+
+        store = MagicMock()
+        set_state_store(store)
+
+        issue = _make_issue(77, title="Push fail test")
+
+        with (
+            patch(
+                "sdd_orchestrator.tools.issues.git_commit_files",
+                new_callable=AsyncMock,
+                return_value="git push retry failed: remote rejected",
+            ),
+            patch(
+                "sdd_orchestrator.tools.issues.git_reset_files",
+                new_callable=AsyncMock,
+            ) as mock_reset,
+            patch(
+                "sdd_orchestrator.tools.task_utils.git_undo_last_commit",
+                new_callable=AsyncMock,
+            ) as mock_undo,
+        ):
+            result = await do_auto_create_task(issue, current, done, backlog)
+
+        assert result.get("isError") is True
+        mock_undo.assert_called_once()
+        mock_reset.assert_not_called()
+        store.set_task_status.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_no_state_store_returns_error(self):
         set_state_store(None)
         issue = _make_issue(1)

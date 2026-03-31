@@ -175,13 +175,19 @@ async def _commit_and_register(
     issue_number: int,
 ) -> str | None:
     """Commit spec.md then register task status. Returns error string or None."""
+    from sdd_orchestrator.tools.task_utils import git_undo_last_commit
+
     files = [str(spec_path)]
     err = await git_commit_files(
         files,
         f"chore: {task_id} 태스크 자동 생성 (Issue #{issue_number})",
     )
     if err:
-        await git_reset_files(files)
+        # Push failure means commit exists locally — undo it first
+        if err.startswith(("git push", "git pull --rebase")):
+            await git_undo_last_commit()
+        else:
+            await git_reset_files(files)
         shutil.rmtree(task_dir, ignore_errors=True)
         return f"Git 커밋 실패: {err}"
     _state_store.set_task_status(task_id, "pending")
