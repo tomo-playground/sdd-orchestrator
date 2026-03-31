@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from config import logger
@@ -136,22 +136,29 @@ class TagClassifier:
 
         results: dict[str, ClassificationResult] = {}
         no_rule_match = []
+        rule_matched: list[tuple[str, ClassificationResult]] = []
 
         # First pass: check pattern rules (highest priority)
         for tag in tags:
             normalized = normalize_prompt_token(tag)
             rule_result = self._apply_rules(normalized)
             if rule_result and rule_result["confidence"] >= 0.9:
-                self._save_classification(normalized, rule_result)
+                rule_matched.append((normalized, rule_result))
                 results[tag] = rule_result
             else:
                 no_rule_match.append(tag)
 
-        # Second pass: check DB cache for tags without rule match
+        # Batch save rule-matched tags (1 query instead of N)
+        if rule_matched:
+            self._save_classification_batch(rule_matched)
+
+        # Second pass: batch DB lookup for tags without rule match (1 query instead of N)
+        normalized_map = {tag: normalize_prompt_token(tag) for tag in no_rule_match}
+        db_results = self._lookup_db_batch(list(normalized_map.values()))
         still_unknown = []
         for tag in no_rule_match:
-            normalized = normalize_prompt_token(tag)
-            db_result = self._lookup_db(normalized)
+            norm = normalized_map[tag]
+            db_result = db_results.get(norm)
             if db_result and db_result["confidence"] >= 0.8:
                 results[tag] = db_result
             else:
@@ -176,6 +183,93 @@ class TagClassifier:
             results[tag] = {"group": None, "confidence": 0.0, "source": "pending"}
 
         return results, still_unknown
+
+    def _lookup_db_batch(self, tags: list[str]) -> dict[str, ClassificationResult]:
+        """Batch lookup tags in database. Single query with WHERE name IN (...)."""
+        if not tags:
+            return {}
+
+        stmt = select(Tag).where(Tag.name.in_(tags))
+        rows = self.db.execute(stmt).scalars().all()
+
+        results: dict[str, ClassificationResult] = {}
+        for row in rows:
+            if not row.group_name:
+                continue
+            if row.group_name == "subject" and row.classification_source in (None, "default"):
+                results[row.name] = {
+                    "group": row.group_name,
+                    "confidence": 0.3,
+                    "source": "db",
+                }
+            else:
+                results[row.name] = {
+                    "group": row.group_name,
+                    "confidence": max(
+                        row.classification_confidence
+                        if isinstance(row.classification_confidence, (int, float))
+                        else 1.0,
+                        0.9,
+                    ),
+                    "source": "db",
+                }
+        return results
+
+    def _save_classification_batch(
+        self,
+        items: list[tuple[str, ClassificationResult]],
+        *,
+        defer_commit: bool = False,
+    ) -> None:
+        """Bulk upsert classification results. Single query."""
+        if not items:
+            return
+
+        from sqlalchemy.dialects.postgresql import insert
+
+        rows_by_name: dict[str, dict[str, object]] = {}
+        cat_cache: dict[str | None, str] = {}
+        for tag, result in items:
+            tag = normalize_prompt_token(tag)
+            if not tag:
+                continue
+            default_layer = GROUP_NAME_TO_LAYER.get(result["group"] or "", 1)
+            group = result["group"]
+            if group not in cat_cache:
+                cat_cache[group] = self._group_to_category(group)
+            category = cat_cache[group]
+            rows_by_name[tag] = {
+                "name": tag,
+                "category": category,
+                "group_name": result["group"],
+                "default_layer": default_layer,
+                "classification_source": result["source"],
+                "classification_confidence": result["confidence"],
+            }
+
+        rows = list(rows_by_name.values())
+        if not rows:
+            return
+
+        try:
+            stmt = insert(Tag).values(rows)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["name"],
+                set_={
+                    "group_name": stmt.excluded.group_name,
+                    "default_layer": stmt.excluded.default_layer,
+                    "classification_source": stmt.excluded.classification_source,
+                    "classification_confidence": stmt.excluded.classification_confidence,
+                    "updated_at": func.now(),
+                },
+            )
+            self.db.execute(stmt)
+            if not defer_commit:
+                self.db.commit()
+            logger.info("✅ [TagClassifier] Batch saved %d tags", len(rows))
+        except Exception as e:
+            logger.error("❌ [TagClassifier] Batch save failed: %s", e)
+            self.db.rollback()
 
     def _lookup_db(self, tag: str) -> ClassificationResult | None:
         """Look up tag in database.
