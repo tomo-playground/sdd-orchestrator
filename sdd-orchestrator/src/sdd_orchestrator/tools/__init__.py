@@ -13,6 +13,7 @@ from sdd_orchestrator.tools.github import (
     trigger_sdd_review,
     trigger_workflow,
 )
+from sdd_orchestrator.tools.issues import auto_create_task, scan_issues
 from sdd_orchestrator.tools.notify import notify_human
 from sdd_orchestrator.tools.sentry import sentry_scan
 from sdd_orchestrator.tools.slack_bot import pause_orchestrator, resume_orchestrator
@@ -28,6 +29,8 @@ def create_orchestrator_mcp_server():
         check_workflows,
         check_running_worktrees,
         sentry_scan,
+        scan_issues,
+        auto_create_task,
         trigger_workflow,
         cancel_workflow,
         notify_human,

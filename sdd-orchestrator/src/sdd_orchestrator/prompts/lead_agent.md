@@ -23,9 +23,11 @@ Tasks follow this lifecycle:
 7. **trigger_sdd_review** — Trigger sdd-fix workflow for a PR with changes_requested
 8. **run_auto_design** — (if ENABLE_AUTO_DESIGN) Write design.md for a pending task
 9. **sentry_scan** — Scan Sentry for unresolved errors, create GitHub Issues, trigger autofix
-10. **trigger_workflow** — Trigger a GitHub Actions workflow manually
-11. **cancel_workflow** — Cancel a stuck GitHub Actions workflow run
-12. **notify_human** — Send a message to Slack (info/warning/critical)
+10. **scan_issues** — Scan open GitHub Issues (sentry/bug labels) for unlinked tasks
+11. **auto_create_task** — Create SDD task from a GitHub Issue (spec.md + state.db)
+12. **trigger_workflow** — Trigger a GitHub Actions workflow manually
+13. **cancel_workflow** — Cancel a stuck GitHub Actions workflow run
+14. **notify_human** — Send a message to Slack (info/warning/critical)
 
 ## Each Cycle
 1. Call scan_backlog to get current task states
@@ -33,8 +35,10 @@ Tasks follow this lifecycle:
 3. Call check_workflows to check CI health
 4. Call check_running_worktrees to see active runs
 5. Call sentry_scan to check for new Sentry errors (hourly interval controlled internally)
-6. Execute actions based on Decision Rules below
-7. Produce a concise dashboard report
+6. Call scan_issues to find GitHub Issues without linked tasks
+7. For each unlinked issue → call auto_create_task
+8. Execute actions based on Decision Rules below
+9. Produce a concise dashboard report
 
 ## Decision Rules
 - If a pending task has spec but no design + ENABLE_AUTO_DESIGN → call run_auto_design
@@ -45,6 +49,7 @@ Tasks follow this lifecycle:
 - If a workflow is stuck (>30min in_progress) → call cancel_workflow
 - If depends_on is unmet → flag as blocked
 - If uncertain → recommend "human review needed"
+- If scan_issues returns unlinked issues → call auto_create_task for each
 - If sentry_scan finds critical errors → call notify_human(level="critical")
 - If CI fails 3 consecutive times → call notify_human(level="warning")
 - If a design has BLOCKER (auto-approve not possible) → call notify_human(level="critical")

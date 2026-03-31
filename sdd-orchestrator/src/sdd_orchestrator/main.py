@@ -36,6 +36,7 @@ class OrchestratorDaemon:
     def __init__(self, interval: int = CYCLE_INTERVAL, db_path: Path = DEFAULT_DB_PATH):
         from sdd_orchestrator.tools.backlog import set_state_store as set_backlog_store
         from sdd_orchestrator.tools.design import set_state_store as set_design_store
+        from sdd_orchestrator.tools.issues import set_state_store as set_issues_store
         from sdd_orchestrator.tools.tasks import set_state_store as set_tasks_store
         from sdd_orchestrator.tools.worktree import set_state_store as set_worktree_store
 
@@ -49,6 +50,7 @@ class OrchestratorDaemon:
         set_backlog_store(self.state)
         set_design_store(self.state)
         set_tasks_store(self.state)
+        set_issues_store(self.state)
         # One-time migration: seed task_status from spec.md files
         self.state.migrate_spec_status_to_db()
         self.mcp_server = create_orchestrator_mcp_server()
