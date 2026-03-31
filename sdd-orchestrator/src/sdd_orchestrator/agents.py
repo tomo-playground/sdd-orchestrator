@@ -10,6 +10,7 @@ from sdd_orchestrator.config import (
     DESIGNER_MODEL,
     DESIGNER_SYSTEM_PROMPT,
     ENABLE_AUTO_DESIGN,
+    ENABLE_AUTO_ISSUES,
     ENABLE_AUTO_RUN,
     LEAD_AGENT_MODEL,
     LEAD_AGENT_SYSTEM_PROMPT,
@@ -34,12 +35,19 @@ _WRITE_TOOLS = [
     "mcp__orch__trigger_sdd_review",
 ]
 
+_ISSUE_TOOLS = [
+    "mcp__orch__scan_issues",
+    "mcp__orch__auto_create_task",
+]
+
 
 def get_allowed_tools() -> list[str]:
-    """Build the allowed_tools list based on ENABLE_AUTO_RUN."""
+    """Build the allowed_tools list based on feature flags."""
     tools = list(_READ_TOOLS)
     if ENABLE_AUTO_RUN:
         tools.extend(_WRITE_TOOLS)
+    if ENABLE_AUTO_ISSUES:
+        tools.extend(_ISSUE_TOOLS)
     return tools
 
 

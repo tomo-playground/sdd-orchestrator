@@ -117,6 +117,26 @@ async def git_commit_files(files: list[str], message: str) -> str | None:
             return f"git error: {e}"
 
 
+async def git_reset_files(files: list[str]) -> None:
+    """Unstage files from the git index (git reset HEAD <files>)."""
+    from sdd_orchestrator.config import PROJECT_ROOT
+
+    cwd = str(PROJECT_ROOT)
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git",
+            "reset",
+            "HEAD",
+            *files,
+            cwd=cwd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await _wait_proc(proc)
+    except Exception:
+        logger.warning("git reset HEAD failed for %s (non-fatal)", files)
+
+
 # ── SP number / slug ─────────────────────────────────────
 _SP_NUM_RE = re.compile(r"SP-(\d+)")
 

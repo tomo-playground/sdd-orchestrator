@@ -11,13 +11,20 @@ from pathlib import Path
 
 from claude_agent_sdk import tool
 
-from sdd_orchestrator.config import TASKS_CURRENT_DIR, TASKS_DONE_DIR
+from sdd_orchestrator.config import (
+    ISSUE_ALLOWED_LABELS,
+    ISSUE_MAX_BODY_LEN,
+    ISSUE_SCAN_LIMIT,
+    TASKS_CURRENT_DIR,
+    TASKS_DONE_DIR,
+)
 from sdd_orchestrator.tools.github import _run_gh_command
 from sdd_orchestrator.tools.task_utils import (
     _error,
     _ok,
     generate_slug,
     git_commit_files,
+    git_reset_files,
     next_sp_number,
     today_str,
 )
@@ -25,9 +32,7 @@ from sdd_orchestrator.tools.task_utils import (
 logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────
-ALLOWED_LABELS: frozenset[str] = frozenset({"sentry", "bug"})
 ISSUE_FIELDS = "number,title,body,labels,createdAt"
-_MAX_BODY_LEN = 4000
 _SENTRY_TITLE_RE = re.compile(r"^\[Sentry/[^\]]+\]\s*")
 GH_ISSUE_RE = re.compile(r"\*{0,2}gh_issue\*{0,2}:\s*#?(\d+)")
 
@@ -60,7 +65,7 @@ async def _fetch_labeled_issues(label: str) -> tuple[list[dict], str | None]:
         "--json",
         ISSUE_FIELDS,
         "--limit",
-        "50",
+        str(ISSUE_SCAN_LIMIT),
     )
     if "error" in result:
         logger.warning("Failed to fetch issues with label=%s: %s", label, result["error"])
@@ -95,10 +100,10 @@ def _extract_title(issue: dict) -> str:
 
 
 def _extract_description(issue: dict) -> str:
-    """Extract issue body, truncated to _MAX_BODY_LEN."""
+    """Extract issue body, truncated to ISSUE_MAX_BODY_LEN."""
     body = issue.get("body", "") or ""
-    if len(body) > _MAX_BODY_LEN:
-        body = body[:_MAX_BODY_LEN] + "\n\n[truncated]"
+    if len(body) > ISSUE_MAX_BODY_LEN:
+        body = body[:ISSUE_MAX_BODY_LEN] + "\n\n[truncated]"
     return body
 
 
@@ -170,11 +175,13 @@ async def _commit_and_register(
     issue_number: int,
 ) -> str | None:
     """Commit spec.md then register task status. Returns error string or None."""
+    files = [str(spec_path)]
     err = await git_commit_files(
-        [str(spec_path)],
+        files,
         f"chore: {task_id} 태스크 자동 생성 (Issue #{issue_number})",
     )
     if err:
+        await git_reset_files(files)
         shutil.rmtree(task_dir, ignore_errors=True)
         return f"Git 커밋 실패: {err}"
     _state_store.set_task_status(task_id, "pending")
@@ -192,7 +199,7 @@ async def do_scan_issues(
     all_issues: dict[int, dict] = {}
     fetch_errors: list[str] = []
 
-    for label in sorted(ALLOWED_LABELS):
+    for label in sorted(ISSUE_ALLOWED_LABELS):
         issues, err = await _fetch_labeled_issues(label)
         if err:
             fetch_errors.append(f"{label}: {err}")

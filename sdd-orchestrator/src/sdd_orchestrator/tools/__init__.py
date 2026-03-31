@@ -3,7 +3,7 @@
 from claude_agent_sdk import create_sdk_mcp_server
 
 import sdd_orchestrator.tools.rollback as rollback  # noqa: F401 — internal module, no MCP tool
-from sdd_orchestrator.config import ENABLE_AUTO_DESIGN, ENABLE_AUTO_RUN
+from sdd_orchestrator.config import ENABLE_AUTO_DESIGN, ENABLE_AUTO_ISSUES, ENABLE_AUTO_RUN
 from sdd_orchestrator.tools.backlog import scan_backlog
 from sdd_orchestrator.tools.github import (
     cancel_workflow,
@@ -13,7 +13,6 @@ from sdd_orchestrator.tools.github import (
     trigger_sdd_review,
     trigger_workflow,
 )
-from sdd_orchestrator.tools.issues import auto_create_task, scan_issues
 from sdd_orchestrator.tools.notify import notify_human
 from sdd_orchestrator.tools.sentry import sentry_scan
 from sdd_orchestrator.tools.slack_bot import pause_orchestrator, resume_orchestrator
@@ -29,8 +28,6 @@ def create_orchestrator_mcp_server():
         check_workflows,
         check_running_worktrees,
         sentry_scan,
-        scan_issues,
-        auto_create_task,
         trigger_workflow,
         cancel_workflow,
         notify_human,
@@ -40,6 +37,11 @@ def create_orchestrator_mcp_server():
         approve_design,
         create_task,
     ]
+    if ENABLE_AUTO_ISSUES:
+        from sdd_orchestrator.tools.issues import auto_create_task, scan_issues
+
+        tools.extend([scan_issues, auto_create_task])
+
     if ENABLE_AUTO_RUN:
         tools.extend([launch_sdd_run, merge_pr, trigger_sdd_review])
 
