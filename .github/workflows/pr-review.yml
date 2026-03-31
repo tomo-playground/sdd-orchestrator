@@ -1,0 +1,56 @@
+# sdd-orchestrator PR Review + Auto-Merge
+# CodeRabbit 리뷰 트리거 + 경미한 변경 자동 머지
+
+name: PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # CodeRabbit은 GitHub App으로 자동 트리거 — 별도 job 불필요
+  # 이 워크플로우는 auto-merge 조건만 처리
+
+  auto-merge:
+    name: Auto-merge (minor chore PRs)
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.head_ref, 'chore/') &&
+      github.actor != 'dependabot[bot]'
+    steps:
+      - name: Check changed files count
+        id: files
+        run: |
+          COUNT=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files \
+            --jq 'length')
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Changed files: $COUNT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Gate — skip if too many files
+        if: fromJSON(steps.files.outputs.count) > 3
+        run: |
+          echo "Changed files (${{ steps.files.outputs.count }}) > 3 — auto-merge skipped"
+          exit 0
+
+      - name: Wait for CodeRabbit review
+        if: fromJSON(steps.files.outputs.count) <= 3
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-regexp: "coderabbitai"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          allowed-conclusions: success,skipped,neutral
+        continue-on-error: true
+
+      - name: Enable auto-merge
+        if: fromJSON(steps.files.outputs.count) <= 3
+        run: gh pr merge ${{ github.event.pull_request.number }} --auto --squash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# sdd-orchestrator — CodeRabbit 코드 리뷰 설정
+
+language: ko-KR
+tone_instructions: >-
+  간결하게. 버그와 로직 에러에만 집중.
+early_access: false
+enable_free_tier: true
+
+reviews:
+  profile: chill
+  request_changes_workflow: true
+  fail_commit_status: false
+  high_level_summary: false
+  review_status: false
+  commit_status: true
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  poem: false
+
+  path_filters:
+    - "src/**"
+    - "tests/**"
+    - "**/*.py"
+    - "!**/__pycache__/**"
+    - "!.github/**"
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: false
+    ignore_title_keywords:
+      - "WIP"
+      - "[draft]"
+    drafts: false
+    base_branches:
+      - "main"
+
+  tools:
+    ruff:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: false
