@@ -5,7 +5,6 @@ priority: P0
 scope: backend
 branch: feat/SP-115-bg-char-split-ipadapter
 created: 2026-03-28
-status: done
 approved_at: 2026-03-28
 label: feature
 ---

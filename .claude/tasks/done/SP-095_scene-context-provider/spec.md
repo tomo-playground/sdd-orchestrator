@@ -4,7 +4,6 @@ priority: P2
 scope: frontend
 branch: feat/SP-095-scene-context-provider
 created: 2026-03-26
-status: done
 approved_at: 2026-03-26
 depends_on: SP-021, SP-094
 label: feature

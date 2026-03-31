@@ -43,11 +43,10 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "Stop Hook: ${MAX_RETRIES}회 재시도 초과 — 종료합니다" >&2
     SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' | head -1)
-    # 디렉토리 방식 우선, 레거시 fallback
-    SPEC_FILE=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/spec.md 2>/dev/null | head -1)
-    [ -z "$SPEC_FILE" ] && SPEC_FILE=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
-    if [ -n "$SPEC_FILE" ] && [ -f "$SPEC_FILE" ]; then
-      sed -i 's/^status:.*/status: failed/' "$SPEC_FILE"
+    # Update state.db (SSOT for task status)
+    STATE_DB="/home/tomo/Workspace/shorts-producer/.sdd/state.db"
+    if [ -n "$SP_ID" ] && [ -f "$STATE_DB" ]; then
+      sqlite3 "$STATE_DB" "INSERT INTO task_status (task_id, status, updated_at) VALUES ('${SP_ID}', 'failed', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='failed', updated_at=datetime('now');"
     fi
     rm -f "$RETRY_FILE"
     exit 0
@@ -241,17 +240,21 @@ CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | he
 if [ -n "$CURRENT_DIR" ] && [ -d "$CURRENT_DIR" ]; then
   DIRNAME=$(basename "$CURRENT_DIR")
   DONE_FILE="$DONE_DIR/${DIRNAME}"
-  sed -i 's/^status:.*/status: done/' "$CURRENT_DIR/spec.md"
   mv "$CURRENT_DIR" "$DONE_FILE"
 elif [ -n "$CURRENT" ] && [ -f "$CURRENT" ] && [ -s "$CURRENT" ]; then
   BASENAME=$(basename "$CURRENT")
   DONE_FILE="$DONE_DIR/${BASENAME}"
-  sed -i 's/^status:.*/status: done/' "$CURRENT"
   mv "$CURRENT" "$DONE_FILE"
 else
   TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
   DONE_FILE="$DONE_DIR/${TASK_NAME}.md"
   echo "# $TASK_NAME" > "$DONE_FILE"
+fi
+
+# Update state.db — 성공 완료 (done)
+STATE_DB="/home/tomo/Workspace/shorts-producer/.sdd/state.db"
+if [ -n "$SP_ID" ] && [ -f "$STATE_DB" ]; then
+  sqlite3 "$STATE_DB" "INSERT INTO task_status (task_id, status, updated_at) VALUES ('${SP_ID}', 'done', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='done', updated_at=datetime('now');" 2>/dev/null || true
 fi
 
 # Backend health check for E2E judgment

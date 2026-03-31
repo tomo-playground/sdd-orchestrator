@@ -4,7 +4,6 @@ priority: P1
 scope: fullstack
 branch: feat/SP-021-speaker-dynamic-role
 created: 2026-03-21
-status: done
 approved_at: 2026-03-23
 depends_on: SP-020
 label: enhancement

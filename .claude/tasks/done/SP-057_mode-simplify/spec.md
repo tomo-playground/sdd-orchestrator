@@ -4,7 +4,6 @@ priority: P1
 scope: fullstack
 branch: feat/SP-057-mode-simplify
 created: 2026-03-22
-status: done
 approved_at: 2026-03-23
 depends_on:
 label: feat

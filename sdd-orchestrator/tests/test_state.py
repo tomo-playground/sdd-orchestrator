@@ -254,8 +254,7 @@ def test_get_all_task_statuses_empty(store: StateStore):
 
 
 def test_migrate_spec_status_to_db(store: StateStore, tmp_path: Path):
-    """Migration reads spec.md status and seeds DB."""
-    # Create a mock current/ directory
+    """Migration seeds current/ tasks as 'pending' (state.db is SSOT, no spec.md status)."""
     current = tmp_path / ".claude" / "tasks" / "current"
     current.mkdir(parents=True)
     done = tmp_path / ".claude" / "tasks" / "done"
@@ -263,17 +262,11 @@ def test_migrate_spec_status_to_db(store: StateStore, tmp_path: Path):
 
     task_dir = current / "SP-050_test-task"
     task_dir.mkdir()
-    (task_dir / "spec.md").write_text(
-        "# SP-050\n\n> status: approved | approved_at: 2026-03-26\n",
-        encoding="utf-8",
-    )
+    (task_dir / "spec.md").write_text("# SP-050\n\n## DoD\n", encoding="utf-8")
 
     task_dir2 = current / "SP-051_other-task"
     task_dir2.mkdir()
-    (task_dir2 / "spec.md").write_text(
-        "---\nstatus: running\n---\n",
-        encoding="utf-8",
-    )
+    (task_dir2 / "spec.md").write_text("# SP-051\n\n## DoD\n", encoding="utf-8")
 
     with (
         patch("sdd_orchestrator.config.TASKS_CURRENT_DIR", current),
@@ -282,8 +275,8 @@ def test_migrate_spec_status_to_db(store: StateStore, tmp_path: Path):
         count = store.migrate_spec_status_to_db()
 
     assert count == 2
-    assert store.get_task_status("SP-050") == "approved"
-    assert store.get_task_status("SP-051") == "running"
+    assert store.get_task_status("SP-050") == "pending"
+    assert store.get_task_status("SP-051") == "pending"
 
 
 def test_migrate_seeds_done_tasks(store: StateStore, tmp_path: Path):
@@ -314,7 +307,7 @@ def test_migrate_skips_existing(store: StateStore, tmp_path: Path):
 
     task_dir = current / "SP-050_test"
     task_dir.mkdir()
-    (task_dir / "spec.md").write_text("# SP-050\n\n> status: pending\n", encoding="utf-8")
+    (task_dir / "spec.md").write_text("# SP-050\n\n## DoD\n", encoding="utf-8")
 
     # Pre-set in DB
     store.set_task_status("SP-050", "done")

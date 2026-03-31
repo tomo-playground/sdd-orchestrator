@@ -374,7 +374,7 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 
 ## 상세 설계 규칙
 
-- **설계 미승인 상태에서 /sdd-run 실행 금지** — status가 `approved`가 아니면 거부
+- **설계 미승인 상태에서 /sdd-run 실행 금지** — state.db에서 status가 `approved`가 아니면 거부 (spec.md에 status 필드 없음)
 - **설계 작성 주체는 AI** — 각 DoD 항목에 대해 구현방법/동작정의/엣지케이스/영향범위/테스트전략/Out of Scope 6가지 명시
 - **승인 주체는 사람** — 방향 확인, 수정 요청 가능
 - **버그 수정(Hotfix/Sentry)은 설계 생략 가능**

@@ -1,6 +1,5 @@
 # SP-118: 오케스트레이터 PR 매칭 오류 수정
 
-- **status**: approved
 - **approved_at**: 2026-03-29
 - **priority**: P1
 - **scope**: sdd-orchestrator

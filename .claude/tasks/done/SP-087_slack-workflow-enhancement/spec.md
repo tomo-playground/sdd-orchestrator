@@ -1,7 +1,6 @@
 # SP-087: Slack 워크플로우 강화 — Slack에서 SDD 업무 전체 수행
 
 branch: worktree-SP-087
-> status: approved | approved_at: 2026-03-26
 
 ## 상세 설계 (How)
 

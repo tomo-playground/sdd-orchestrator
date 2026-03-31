@@ -7,34 +7,7 @@ from pathlib import Path
 from sdd_orchestrator.tools.task_utils import (
     generate_slug,
     next_sp_number,
-    parse_spec_status,
 )
-
-
-class TestParseSpecStatus:
-    def test_frontmatter_format(self):
-        content = "---\nstatus: approved\n---\n## What\n"
-        assert parse_spec_status(content) == "approved"
-
-    def test_blockquote_format(self):
-        content = "# SP-087\n\n> status: approved\n"
-        assert parse_spec_status(content) == "approved"
-
-    def test_blockquote_with_pipe_metadata(self):
-        content = "# SP-087\n\n> status: approved | approved_at: 2026-03-26\n"
-        assert parse_spec_status(content) == "approved"
-
-    def test_no_status_returns_pending(self):
-        content = "# SP-087\n\n## What\nSomething\n"
-        assert parse_spec_status(content) == "pending"
-
-    def test_running_status(self):
-        content = "> status: running | approved_at: 2026-03-26\n"
-        assert parse_spec_status(content) == "running"
-
-    def test_design_status_frontmatter(self):
-        content = "---\nstatus: design\n---\n"
-        assert parse_spec_status(content) == "design"
 
 
 class TestGenerateSlug:

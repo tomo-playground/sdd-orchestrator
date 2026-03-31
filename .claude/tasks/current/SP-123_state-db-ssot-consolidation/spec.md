@@ -1,6 +1,5 @@
 # SP-123: 태스크 상태 SSOT 통일 — state.db 단일화
 
-- **status**: approved
 - **approved_at**: 2026-03-31
 - **branch**: feat/SP-123_state-db-ssot-consolidation
 - **priority**: P1
@@ -29,15 +28,15 @@ SP-120에서 state.db를 도입했지만, spec.md의 status 필드가 여전히 
 
 ## DoD (Definition of Done)
 
-- [ ] spec.md 템플릿에서 `status:` 필드 제거 (sdd-run, sdd-design, tasks.py의 spec 생성 로직)
-- [ ] sdd-design 명령: state.db만 읽기/쓰기. spec.md status 조작 제거
-- [ ] sdd-run 명령: state.db만 읽기/쓰기. spec.md status 조작 제거
-- [ ] sdd-sync.sh: spec.md status 쓰기 제거 (state.db만 업데이트)
-- [ ] sdd-fix.sh: spec.md status 참조가 있으면 제거
-- [ ] 오케스트레이터: `_read_spec_status` fallback 제거 (state.db only)
-- [ ] 기존 spec.md의 status 필드 일괄 제거 (current/ + done/ 모두)
-- [ ] 상태 확인 CLI 방법 문서화: `sqlite3 .sdd/state.db "SELECT * FROM task_status WHERE task_id='SP-NNN';"`
-- [ ] ORCHESTRATOR_GUIDE.md 업데이트
+- [x] spec.md 템플릿에서 `status:` 필드 제거 (sdd-run, sdd-design, tasks.py의 spec 생성 로직)
+- [x] sdd-design 명령: state.db만 읽기/쓰기. spec.md status 조작 제거
+- [x] sdd-run 명령: state.db만 읽기/쓰기. spec.md status 조작 제거
+- [x] sdd-sync.sh: spec.md status 쓰기 제거 (state.db만 업데이트)
+- [x] sdd-fix.sh: spec.md status 참조가 있으면 제거
+- [x] 오케스트레이터: `_read_spec_status` fallback 제거 (state.db only)
+- [x] 기존 spec.md의 status 필드 일괄 제거 (current/ + done/ 모두)
+- [x] 상태 확인 CLI 방법 문서화: `sqlite3 .sdd/state.db "SELECT * FROM task_status WHERE task_id='SP-NNN';"`
+- [x] ORCHESTRATOR_GUIDE.md 업데이트
 
 ## 수정 대상 파일
 

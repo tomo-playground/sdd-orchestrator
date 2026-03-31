@@ -1,7 +1,6 @@
 # SP-120: 태스크 상태를 spec.md에서 state.db로 분리
 
 branch: feat/SP-120_task-status-db-migration
-status: running | approved_at: 2026-03-30
 priority: P1
 scope: infra
 

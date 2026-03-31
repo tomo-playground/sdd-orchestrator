@@ -4,7 +4,6 @@ priority: P0
 scope: backend
 branch: feat/SP-106-shorts-tempo-tuning
 created: 2026-03-28
-status: done
 approved_at: 2026-03-28
 note: 설계 승인 완료, 코드 구현 미적용 상태로 재착수 (2026-03-29)
 depends_on:

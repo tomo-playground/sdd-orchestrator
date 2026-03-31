@@ -4,7 +4,6 @@ priority: P1
 scope: frontend
 branch: fix/SP-048-direct-tab-ux-polish
 created: 2026-03-22
-status: done
 approved_at: 2026-03-22
 depends_on:
 label: feat

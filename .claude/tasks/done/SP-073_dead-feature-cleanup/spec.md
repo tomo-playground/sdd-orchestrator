@@ -1,7 +1,6 @@
 ---
 id: SP-073
 title: Dead Feature Cleanup — 미사용 컬럼/코드 제거
-status: done
 priority: P1
 scope: backend
 labels: ["cleanup", "db-migration"]

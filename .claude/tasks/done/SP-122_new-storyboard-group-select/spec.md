@@ -1,6 +1,5 @@
 # SP-122: 새 영상 생성 시 시리즈 선택 UX 개선
 
-- **status**: approved
 - **approved_at**: 2026-03-31
 - **branch**: feat/SP-122_new-storyboard-group-select
 - **priority**: P1

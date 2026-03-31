@@ -4,7 +4,6 @@ priority: P1
 scope: backend
 branch: feat/SP-059-multi-scene-activate
 created: 2026-03-22
-status: done
 approved_at: 2026-03-23
 depends_on:
 label: feat

@@ -4,7 +4,6 @@ priority: P1
 scope: frontend
 branch: feat/SP-060-voice-preset-cache-stale
 created: 2026-03-22
-status: done
 depends_on:
 label: bug
 ---

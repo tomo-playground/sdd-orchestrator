@@ -4,7 +4,6 @@ priority: P0
 scope: infra
 branch: feat/SP-066-orchestrator-skeleton
 created: 2026-03-23
-status: done
 depends_on:
 label: feat
 ---

@@ -4,7 +4,6 @@ priority: P2
 scope: backend
 branch: feat/SP-064-narrative-per-scene-eval
 created: 2026-03-23
-status: done
 depends_on: SP-061
 label: feat
 ---

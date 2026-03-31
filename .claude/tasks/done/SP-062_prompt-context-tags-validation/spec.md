@@ -4,7 +4,6 @@ priority: P1
 scope: backend
 branch: feat/SP-062-prompt-context-tags-validation
 created: 2026-03-23
-status: done
 depends_on:
 label: feat
 ---

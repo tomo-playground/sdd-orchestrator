@@ -4,7 +4,6 @@ priority: P0
 scope: infra
 branch: feat/SP-069-orchestrator-sentry-notify
 created: 2026-03-23
-status: done
 approved_at: 2026-03-23
 depends_on: SP-068
 label: feat

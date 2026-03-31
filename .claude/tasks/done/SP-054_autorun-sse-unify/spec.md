@@ -4,7 +4,6 @@ priority: P1
 scope: fullstack
 branch: feat/SP-054-autorun-sse-unify
 created: 2026-03-22
-status: done
 approved_at: 2026-03-22
 depends_on:
 label: feat

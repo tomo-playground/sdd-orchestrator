@@ -4,7 +4,6 @@ priority: P1
 scope: backend
 branch: feat/SP-072-narrator-scene-intelligence
 created: 2026-03-23
-status: done
 approved_at: 2026-03-23
 depends_on:
 label: feat

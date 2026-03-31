@@ -11,7 +11,6 @@ import pytest
 from sdd_orchestrator.state import StateStore
 from sdd_orchestrator.tools.design import (
     _find_task_dir,
-    _read_spec_status,
     auto_design_task,
     set_state_store,
 )
@@ -55,15 +54,6 @@ class TestFindTaskDir:
     def test_missing_dir(self, tmp_path):
         with patch("sdd_orchestrator.tools.design.TASKS_CURRENT_DIR", tmp_path / "nonexistent"):
             assert _find_task_dir("SP-099") is None
-
-
-class TestReadSpecStatus:
-    def test_reads_status(self, task_env):
-        assert _read_spec_status("SP-099") == "pending"
-
-    def test_missing_store(self, tmp_path):
-        set_state_store(None)
-        assert _read_spec_status("SP-099") == "pending"
 
 
 class TestAutoDesignTask:

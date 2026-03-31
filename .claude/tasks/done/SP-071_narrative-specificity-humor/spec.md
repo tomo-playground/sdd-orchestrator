@@ -4,7 +4,6 @@ priority: P2
 scope: backend
 branch: feat/SP-071-narrative-specificity-humor
 created: 2026-03-23
-status: done
 approved_at: 2026-03-23
 depends_on: SP-064
 label: feat

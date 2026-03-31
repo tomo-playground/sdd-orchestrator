@@ -4,7 +4,6 @@ priority:                    # P0 / P1 / P2 / P3
 scope:                       # backend / frontend / fullstack / infra / docs
 branch: feat/SP-NNN-설명     # feat/{id}-{kebab-case 설명}
 created:                     # YYYY-MM-DD
-status: pending              # pending → design → approved → running → done / failed
 depends_on:                  # 선행 태스크 id (없으면 비움)
 label:                       # PR 라벨 (feat / bug / chore)
 ---
@@ -39,7 +38,7 @@ label:                       # PR 라벨 (feat / bug / chore)
 
 ## 상세 설계 (How)
 > `/sdd-design SP-NNN`이 자동 작성 → **사람이 승인한 후에만** 구현 착수.
-> status: design → 사람 승인 → status: approved → /sdd-run 실행.
+> state.db에서 design → 사람 승인 → approved → /sdd-run 실행. (spec.md에 status 필드 없음)
 
 ### 설계 작성 가이드
 각 DoD 항목에 대해 아래 6가지를 명시:

@@ -1,6 +1,5 @@
 # SP-121: E2E 테스트 셀렉터 수정
 
-- **status**: approved
 - **approved_at**: 2026-03-30
 - **branch**: feat/SP-121-e2e-selector-fix
 - **priority**: P2
