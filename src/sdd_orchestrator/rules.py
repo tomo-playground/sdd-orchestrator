@@ -49,11 +49,24 @@ _BLOCKER_RE = re.compile(r"\*\*BLOCKER\*\*", re.IGNORECASE)
 # Table row pattern: | `path/to/file.ext` | ... | — must contain / or . to be a file path
 _TABLE_ROW_RE = re.compile(r"^\|\s*`([^`]+(?:/|\.)[^`]+)`\s*\|", re.MULTILINE)
 
+# Matches '## 변경 파일 요약' section up to the next ## heading or end of file
+_CHANGED_FILES_SECTION_RE = re.compile(
+    r"##\s*변경\s*파일\s*요약(.*?)(?=\n##|\Z)",
+    re.DOTALL,
+)
+
 
 def _extract_changed_files(design_md: str) -> list[str]:
-    """Extract file paths from the design's changed-files summary table.
-    Falls back to 7+ files (conservative) if parsing fails."""
-    files = _TABLE_ROW_RE.findall(design_md)
+    """Extract file paths from '변경 파일 요약' section only.
+
+    Scans only the changed-files summary table to avoid false positives
+    from code examples or other tables (e.g. `httpx.ConnectError`, `/api/chat`).
+    Falls back to 7+ files (conservative) if section or parsing fails.
+    """
+    section_match = _CHANGED_FILES_SECTION_RE.search(design_md)
+    if not section_match:
+        return ["_parse_failed"] * 7  # conservative fallback
+    files = _TABLE_ROW_RE.findall(section_match.group(1))
     return files if files else ["_parse_failed"] * 7  # conservative fallback
 
 

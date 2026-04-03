@@ -177,6 +177,36 @@ class TestCanAutoApprove:
         approved, reason = can_auto_approve(design)
         assert approved is True
 
+    def test_section_isolation_ignores_other_tables(self):
+        """File-like patterns outside 변경 파일 요약 must not be counted."""
+        design = """\
+## 변경 파일 요약
+
+| 파일 | 변경 유형 |
+|------|-----------|
+| `backend/services/llm/ollama_provider.py` | 신규 |
+| `backend/services/agent/tools/base.py` | 수정 |
+| `backend/.env` | 수정 |
+
+## retry 전략
+
+| 예외 | 처리 |
+|------|------|
+| `httpx.ConnectError` | retryable |
+| `httpx.TimeoutException` | retryable |
+| `httpx.HTTPStatusError` (5xx) | retryable |
+| `httpx.HTTPStatusError` (408/429) | retryable |
+| `httpx.HTTPStatusError` (4xx) | 즉시 raise |
+
+## 엔드포인트
+
+| `/api/chat` | 신버전 |
+| `/api/generate` | 구버전 |
+"""
+        approved, reason = can_auto_approve(design)
+        assert approved is True
+        assert "3 files" in reason
+
     def test_package_lock_rejected(self):
         design = """\
 ## 변경 파일 요약
