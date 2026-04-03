@@ -154,10 +154,15 @@ async def do_launch_sdd_run(task_id: str) -> dict:
             f"Running: {[r['task_id'] for r in running]}"
         )
 
-    # Check if already running
+    # Check if already running (state DB)
     for r in running:
         if r["task_id"] == task_id:
             return _error(f"{task_id} is already running (run_id={r['id']})")
+
+    # Check if already running (OS process — 수동 실행 감지)
+    os_pid = _find_worktree_process(task_id)
+    if os_pid:
+        return _error(f"{task_id} is already running externally (pid={os_pid})")
 
     # Check consecutive failures → blocked
     failures = _state_store.get_consecutive_failures(task_id)
@@ -269,6 +274,28 @@ def _has_open_pr(task_id: str) -> str | None:
                 return f"PR #{pr['number']}"
     except Exception:
         logger.warning("Failed to check open PR for %s", task_id, exc_info=True)
+    return None
+
+
+def _find_worktree_process(task_id: str) -> int | None:
+    """OS에서 해당 task_id의 worktree 프로세스를 검색한다 (수동 실행 포함)."""
+    import os
+
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", f"claude.*worktree.*{task_id}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.strip().splitlines():
+                pid = int(line.strip())
+                # 자기 자신(오케스트레이터)은 제외
+                if pid != os.getpid():
+                    return pid
+    except Exception:
+        logger.debug("_find_worktree_process failed for %s", task_id, exc_info=True)
     return None
 
 

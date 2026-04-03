@@ -30,6 +30,12 @@ def _inject_store(store: StateStore):
 
 
 class TestLaunchSddRun:
+    @pytest.fixture(autouse=True)
+    def _no_os_process(self):
+        """OS 프로세스 검출을 기본 비활성화 (수동 실행 없는 상태)."""
+        with patch.object(worktree_mod, "_find_worktree_process", return_value=None):
+            yield
+
     @pytest.mark.asyncio
     async def test_launch_success(self, store: StateStore):
         mock_proc = AsyncMock()
@@ -88,6 +94,52 @@ class TestLaunchSddRun:
 
         assert result.get("isError") is True
         assert "not found" in result["content"][0]["text"]
+
+
+class TestFindWorktreeProcess:
+    def test_detects_external_process(self):
+        """pgrep이 PID를 반환하면 해당 PID 반환."""
+        with patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "99999\n"
+            result = worktree_mod._find_worktree_process("SP-099")
+        assert result == 99999
+
+    def test_returns_none_when_no_process(self):
+        """pgrep 매칭 없으면 None."""
+        with patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stdout = ""
+            result = worktree_mod._find_worktree_process("SP-099")
+        assert result is None
+
+    def test_excludes_self(self):
+        """자기 자신 PID는 제외."""
+        import os
+
+        with patch("sdd_orchestrator.tools.worktree.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = f"{os.getpid()}\n"
+            result = worktree_mod._find_worktree_process("SP-099")
+        assert result is None
+
+    def test_returns_none_on_exception(self):
+        """pgrep 실패 시 None (graceful)."""
+        with patch("sdd_orchestrator.tools.worktree.subprocess.run", side_effect=OSError):
+            result = worktree_mod._find_worktree_process("SP-099")
+        assert result is None
+
+
+class TestLaunchBlocksExternalProcess:
+    @pytest.mark.asyncio
+    async def test_blocks_when_external_process_found(self, store: StateStore):
+        """수동 실행 프로세스가 있으면 launch 차단."""
+        with patch.object(worktree_mod, "_find_worktree_process", return_value=88888):
+            result = await do_launch_sdd_run("SP-099")
+
+        assert result.get("isError") is True
+        assert "externally" in result["content"][0]["text"]
+        assert "88888" in result["content"][0]["text"]
 
 
 class TestCheckRunningWorktrees:
@@ -378,6 +430,11 @@ class TestWatchProcessCleanup:
 
 
 class TestLaunchWithStaleWorktree:
+    @pytest.fixture(autouse=True)
+    def _no_os_process(self):
+        with patch.object(worktree_mod, "_find_worktree_process", return_value=None):
+            yield
+
     @pytest.mark.asyncio
     async def test_launch_removes_stale_before_create(self, store: StateStore):
         mock_proc = AsyncMock()
