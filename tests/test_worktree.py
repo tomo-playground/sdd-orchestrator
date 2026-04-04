@@ -130,6 +130,48 @@ class TestFindWorktreeProcess:
         assert result is None
 
 
+class TestCheckDependency:
+    def test_no_depends_returns_none(self, tmp_path: Path, store: StateStore):
+        """depends 필드 없으면 None."""
+        task_dir = tmp_path / ".claude/tasks/current/SP-099_test"
+        task_dir.mkdir(parents=True)
+        (task_dir / "spec.md").write_text("# SP-099\n- **status**: approved\n")
+        with patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path):
+            result = worktree_mod._check_dependency("SP-099")
+        assert result is None
+
+    def test_blocks_when_dep_not_done(self, tmp_path: Path, store: StateStore):
+        """의존 태스크가 done이 아니면 차단."""
+        task_dir = tmp_path / ".claude/tasks/current/SP-134_test"
+        task_dir.mkdir(parents=True)
+        (task_dir / "spec.md").write_text("# SP-134\n- **depends**: SP-133\n")
+        store.set_task_status("SP-133", "approved")
+        with patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path):
+            result = worktree_mod._check_dependency("SP-134")
+        assert result == "SP-133"
+
+    def test_passes_when_dep_done(self, tmp_path: Path, store: StateStore):
+        """의존 태스크가 done이면 통과."""
+        task_dir = tmp_path / ".claude/tasks/current/SP-134_test"
+        task_dir.mkdir(parents=True)
+        (task_dir / "spec.md").write_text("# SP-134\n- **depends**: SP-133\n")
+        store.set_task_status("SP-133", "done")
+        with patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path):
+            result = worktree_mod._check_dependency("SP-134")
+        assert result is None
+
+    def test_multiple_deps_blocks_on_first_incomplete(self, tmp_path: Path, store: StateStore):
+        """여러 의존 중 하나라도 미완료면 차단."""
+        task_dir = tmp_path / ".claude/tasks/current/SP-135_test"
+        task_dir.mkdir(parents=True)
+        (task_dir / "spec.md").write_text("# SP-135\n- **depends**: SP-133, SP-134\n")
+        store.set_task_status("SP-133", "done")
+        store.set_task_status("SP-134", "running")
+        with patch("sdd_orchestrator.config.PROJECT_ROOT", tmp_path):
+            result = worktree_mod._check_dependency("SP-135")
+        assert result == "SP-134"
+
+
 class TestLaunchBlocksExternalProcess:
     @pytest.mark.asyncio
     async def test_blocks_when_external_process_found(self, store: StateStore):

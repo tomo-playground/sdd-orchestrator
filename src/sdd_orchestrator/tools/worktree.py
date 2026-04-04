@@ -169,6 +169,11 @@ async def do_launch_sdd_run(task_id: str) -> dict:
     if failures >= 3:
         return _error(f"{task_id} is blocked after {failures} consecutive failures")
 
+    # Check dependency — depends 태스크가 done이 아니면 차단
+    blocker = _check_dependency(task_id)
+    if blocker:
+        return _error(f"{task_id} is blocked by dependency: {blocker}")
+
     # Check if open PR already exists → skip (이미 코딩 완료)
     open_pr = _has_open_pr(task_id)
     if open_pr:
@@ -274,6 +279,39 @@ def _has_open_pr(task_id: str) -> str | None:
                 return f"PR #{pr['number']}"
     except Exception:
         logger.warning("Failed to check open PR for %s", task_id, exc_info=True)
+    return None
+
+
+def _check_dependency(task_id: str) -> str | None:
+    """spec.md의 depends 필드를 파싱, state.db에서 의존 태스크 완료 여부를 확인한다."""
+    import re
+
+    from sdd_orchestrator.config import PROJECT_ROOT
+
+    # spec.md 찾기
+    task_dir = list(PROJECT_ROOT.glob(f".claude/tasks/current/{task_id}_*/spec.md"))
+    if not task_dir:
+        return None
+    try:
+        spec_text = task_dir[0].read_text(encoding="utf-8")
+    except Exception:
+        return None
+
+    # depends 필드 파싱: "- **depends**: SP-133" 또는 "depends: SP-133, SP-134"
+    match = re.search(r"\*{0,2}depends\*{0,2}\s*:\s*(.+)", spec_text, re.IGNORECASE)
+    if not match:
+        return None
+
+    dep_ids = re.findall(r"SP-\d+", match.group(1))
+    if not dep_ids:
+        return None
+
+    # state.db에서 의존 태스크 상태 확인 (SSOT)
+    if _state_store:
+        for dep_id in dep_ids:
+            status = _state_store.get_task_status(dep_id)
+            if status != "done":
+                return dep_id
     return None
 
 
